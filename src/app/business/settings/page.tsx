@@ -3,7 +3,7 @@ import { getPrefs } from "@/server/notify";
 import { Button, Card, Flash, PageHeader } from "@/components/ui";
 import { savePrefsAction } from "@/app/actions/collab";
 export const metadata = { title: "Settings" };
-const OPTS = [["applications", "emailApplications", "Applications and offers"], ["messages", "emailMessages", "New messages (at most one email per 15 minutes)"], ["assignments", "emailAssignments", "Assignments and submitted work"], ["invitations", "emailInvitations", "Invitations"], ["reviews", "emailReviews", "Reviews"]] as const;
+const OPTS = [["applications", "emailApplications", "Applications and offers"], ["messages", "emailMessages", "New messages (at most one email per 15 minutes)"], ["assignments", "emailAssignments", "Assignments and submitted work"], ["invitations", "emailInvitations", "Invitations"], ["reviews", "emailReviews", "Reviews"], ["alerts", "emailAlerts", "Saved-search alerts"]] as const;
 export default async function Page({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
   const sp = await searchParams; const u = await requireUser("business"); const p = await getPrefs(u.id) as Record<string, boolean>;
   return (<><PageHeader title="Settings" /><Flash error={sp.error} ok={sp.ok} />

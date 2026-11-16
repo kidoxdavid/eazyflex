@@ -90,3 +90,15 @@ export async function workerApplicationStatusAction(f: FormData) {
   const to = str(f, "to") as "withdrawn" | "accepted" | "declined";
   await run(() => workerSetApplicationStatus(u.id, str(f, "applicationId") ?? "", to), "/worker/applications", to === "accepted" ? "Offer accepted" : to === "declined" ? "Offer declined" : "Application withdrawn");
 }
+
+export async function saveSearchAction(f: FormData) {
+  const u = await requireUser("worker");
+  const { saveSearch } = await import("@/server/services/saved-searches");
+  const params = Object.fromEntries([...f.entries()].filter(([k]) => k.startsWith("p_")).map(([k, v]) => [k.slice(2), v]));
+  await run(() => saveSearch(u.id, str(f, "name") ?? "", params, bool(f, "alerts")), "/worker/searches", "Search saved");
+}
+export async function searchAlertsAction(f: FormData) {
+  const u = await requireUser("worker"); const s = await import("@/server/services/saved-searches");
+  const id = str(f, "id") ?? "";
+  await run(() => str(f, "delete") ? s.deleteSearch(u.id, id) : s.setAlerts(u.id, id, str(f, "on") === "1"), "/worker/searches", str(f, "delete") ? "Search deleted" : "Alerts updated");
+}

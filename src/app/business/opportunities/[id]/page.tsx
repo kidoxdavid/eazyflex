@@ -38,6 +38,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
       <div className="mb-6 flex flex-wrap gap-2">
         {["draft", "rejected", "paused"].includes(o.status) && <LinkButton variant="outline" href={`/business/post?id=${o.id}`}>Edit</LinkButton>}
         {o.status === "published" && <LinkButton variant="outline" href={`/opportunities/${o.id}`}>View public page</LinkButton>}
+        {d.schedule.length > 0 && ["published", "paused", "filled"].includes(o.status) && <LinkButton variant="secondary" href={`/business/opportunities/${o.id}/coverage`}>Shared coverage</LinkButton>}
         {(o.status === "published" ? ["paused", "closed"] : o.status === "paused" ? ["published", "closed"] : o.status === "filled" ? ["closed"] : []).map((s) => <form key={s} action={opportunityStatusAction}><input type="hidden" name="id" value={o.id} /><input type="hidden" name="status" value={s} /><Button variant="outline" type="submit">{s === "published" ? "Resume" : s === "paused" ? "Pause" : "Close"}</Button></form>)}
       </div>
 

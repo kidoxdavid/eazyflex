@@ -336,6 +336,7 @@ export const savedSearches = pgTable("saved_searches", {
   name: text("name").notNull(),
   params: jsonb("params").notNull(),
   alertsEnabled: boolean("alerts_enabled").notNull().default(false),
+  lastAlertedAt: timestamp("last_alerted_at", { withTimezone: true }).notNull().defaultNow(),
   createdAt: createdAt(),
 });
 
@@ -544,6 +545,7 @@ export const notificationPrefs = pgTable("notification_prefs", {
   emailAssignments: boolean("email_assignments").notNull().default(true),
   emailInvitations: boolean("email_invitations").notNull().default(true),
   emailReviews: boolean("email_reviews").notNull().default(true),
+  emailAlerts: boolean("email_alerts").notNull().default(true),
   updatedAt: updatedAt(),
 });
 
@@ -572,3 +574,34 @@ export const files = pgTable("files", {
   submissionId: uuid("submission_id").references(() => assignmentSubmissions.id, { onDelete: "cascade" }),
   createdAt: createdAt(),
 }, (t) => [index("files_message_idx").on(t.messageId), index("files_submission_idx").on(t.submissionId)]);
+
+// ---------- Phase 4: work-sharing / coverage ----------
+export const sliceStatus = pgEnum("slice_status", ["proposed", "confirmed", "declined", "released"]);
+/** A worker's share of one required weekly window of an opportunity (the opportunity's schedule is the demand). */
+export const coverageSlices = pgTable("coverage_slices", {
+  id: id(),
+  opportunityId: uuid("opportunity_id").notNull().references(() => opportunities.id, { onDelete: "cascade" }),
+  workerId: uuid("worker_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  weekday: smallint("weekday").notNull(),
+  startMinute: smallint("start_minute").notNull(),
+  endMinute: smallint("end_minute").notNull(),
+  status: sliceStatus("status").notNull().default("proposed"),
+  outsideAvailability: boolean("outside_availability").notNull().default(false), // proposed outside the worker's stated availability
+  agreedOutside: boolean("agreed_outside").notNull().default(false),             // worker explicitly agreed to that
+  proposedBy: uuid("proposed_by").references(() => users.id),
+  respondedAt: timestamp("responded_at", { withTimezone: true }),
+  releasedBy: uuid("released_by").references(() => users.id),
+  releaseReason: text("release_reason"),
+  createdAt: createdAt(),
+}, (t) => [index("slices_opp_idx").on(t.opportunityId), index("slices_worker_idx").on(t.workerId, t.status)]);
+
+export const handoverNotes = pgTable("handover_notes", {
+  id: id(),
+  opportunityId: uuid("opportunity_id").notNull().references(() => opportunities.id, { onDelete: "cascade" }),
+  fromSliceId: uuid("from_slice_id").notNull().references(() => coverageSlices.id, { onDelete: "cascade" }),
+  toSliceId: uuid("to_slice_id").notNull().references(() => coverageSlices.id, { onDelete: "cascade" }),
+  note: text("note").notNull(),
+  authorId: uuid("author_id").notNull().references(() => users.id),
+  acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("handover_pair_uq").on(t.fromSliceId, t.toSliceId)]);

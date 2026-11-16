@@ -1,6 +1,6 @@
 import { and, desc, eq, or, sql } from "drizzle-orm";
 import { db } from "../db/client";
-import { applications, assignments, businessMembers, businesses, conversations, messageReports, messages, opportunities, users, workerInvitations } from "../db/schema";
+import { applications, assignments, coverageSlices, businessMembers, businesses, conversations, messageReports, messages, opportunities, users, workerInvitations } from "../db/schema";
 import { audit } from "../audit";
 import { notify } from "../notify";
 import { rateLimit } from "../rate-limit";
@@ -29,11 +29,15 @@ async function hasRelationship(businessId: string, workerId: string) {
   const [i] = await db.select({ id: workerInvitations.id }).from(workerInvitations).where(and(eq(workerInvitations.businessId, businessId), eq(workerInvitations.workerId, workerId))).limit(1);
   if (i) return true;
   const [s] = await db.select({ id: assignments.id }).from(assignments).where(and(eq(assignments.businessId, businessId), eq(assignments.workerId, workerId))).limit(1);
-  return !!s;
+  if (s) return true;
+  const [c] = await db.select({ id: coverageSlices.id }).from(coverageSlices).innerJoin(opportunities, eq(opportunities.id, coverageSlices.opportunityId)).where(and(eq(opportunities.businessId, businessId), eq(coverageSlices.workerId, workerId))).limit(1);
+  return !!c;
 }
 async function hasConfirmedAssignment(businessId: string, workerId: string) {
   const [s] = await db.select({ id: assignments.id }).from(assignments).where(and(eq(assignments.businessId, businessId), eq(assignments.workerId, workerId), sql`${assignments.status} <> 'cancelled'`)).limit(1);
-  return !!s;
+  if (s) return true;
+  const [c] = await db.select({ id: coverageSlices.id }).from(coverageSlices).innerJoin(opportunities, eq(opportunities.id, coverageSlices.opportunityId)).where(and(eq(opportunities.businessId, businessId), eq(coverageSlices.workerId, workerId), eq(coverageSlices.status, "confirmed"))).limit(1);
+  return !!c;
 }
 
 export async function startConversation(userId: string, counterpartId: string, opportunityId?: string) {

@@ -77,6 +77,27 @@ async function main() {
     await mkOpp(p, { title: "CRM clean-up and reporting dashboard", description: "Our CRM has duplicate contacts and inconsistent fields. De-duplicate, standardise and build a simple monthly pipeline report we can maintain ourselves.", engagementType: "specialist_consultation", categoryId: cat["specialist-expertise"], arrangement: "hybrid", serviceAreaId: area["calgary-downtown"], payType: "hourly", payMinCents: 4500, payMaxCents: 6000, estimatedHours: 20, experienceLevel: "experienced" }, ["CRM administration", "Data analysis"], ["CRM administration"]);
     await db.insert(s.applications).values({ opportunityId: o1.id, workerId: wid["walter@demo.test"], status: "under_review", proposal: "I ran a small-business bookkeeping practice for many years and can start next week. Demo application.", proposedRateCents: 4000 });
   }
+  // Work-sharing demo: four part-time workers who together can cover a 30 h/week support desk (fictional).
+  const CS = [
+    { email: "lena@demo.test", name: "Lena Park", av: [[1, 540, 900], [2, 540, 900]], max: 12 },
+    { email: "marcus@demo.test", name: "Marcus Bell", av: [[3, 540, 900], [4, 540, 720]], max: 10 },
+    { email: "ines@demo.test", name: "Ines Moreau", av: [[4, 720, 900], [5, 540, 720]], max: 10 },
+    { email: "tomas@demo.test", name: "Tomas Novak", av: [[5, 720, 900]], max: 5 },
+  ];
+  for (const w of CS) {
+    const u = await mk(w.email, w.name, "worker");
+    await db.insert(s.workerProfiles).values({ userId: u.id, headline: "Customer support agent (part-time, demo)", summary: "Fictional demo profile: experienced support agent available a few set hours each week.", city: "Calgary", serviceAreaId: area["calgary-nw"], arrangements: ["remote"], experienceLevel: "intermediate", maxHoursPerWeek: w.max, onboardingCompletedAt: now, onboardingStep: 7, languages: ["English"] }).onConflictDoNothing();
+    await db.insert(s.workerSkills).values([{ userId: u.id, skillId: sk["Customer support"] }, { userId: u.id, skillId: sk["Chat support"] }]).onConflictDoNothing();
+    await db.insert(s.workerAvailability).values(w.av.map(([weekday, startMinute, endMinute]) => ({ userId: u.id, weekday, startMinute, endMinute }))).onConflictDoNothing();
+    await db.insert(s.verifications).values({ userId: u.id, type: "email", status: "verified", provider: "email_link", decidedAt: now }).onConflictDoNothing();
+  }
+  const mapleBiz = bid["owner@maple.demo.test"];
+  const [hasDesk] = await db.select().from(s.opportunities).where(eq(s.opportunities.title, "Shared customer support desk (demo)"));
+  if (!hasDesk) {
+    const [desk] = await db.insert(s.opportunities).values({ businessId: mapleBiz.b, createdBy: mapleBiz.u, status: "published", publishedAt: now, isDemo: true, title: "Shared customer support desk (demo)", description: "Thirty hours a week of customer support, shared between several people who each cover set hours. Demonstration listing.", engagementType: "recurring", categoryId: cat["customer-service"], arrangement: "remote", payType: "hourly", payMinCents: 2400, payMaxCents: 2800, hoursPerWeek: 30, recurring: true, recurrenceNote: "Mon–Fri 9:00–15:00, ongoing", experienceLevel: "intermediate" }).returning();
+    await db.insert(s.opportunitySkills).values({ opportunityId: desk.id, skillId: sk["Customer support"], mandatory: true });
+    await db.insert(s.opportunitySchedules).values([1, 2, 3, 4, 5].map((weekday) => ({ opportunityId: desk.id, weekday, startMinute: 540, endMinute: 900 })));
+  }
   console.log("Seeded. Demo password for all demo accounts:", DEMO_PASSWORD);
   await getPool().end();
 }

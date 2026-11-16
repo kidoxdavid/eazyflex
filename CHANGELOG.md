@@ -1,5 +1,9 @@
 # Changelog
-## Unreleased — Phase 2 leftovers
+## Unreleased — Phase 4 (non-payment pieces)
+- Work-sharing / coverage engine: suggestions, proposals, explicit worker confirmation, gap/overlap/clash detection, weekly chart, handover notes. Saved searches with alert digests. Migration `0004_phase4_coverage`.
+- 134 Vitest tests + 22-step Playwright journey.
+
+## Phase 2 leftovers
 - Screening questions; file attachments (private storage, validated, authorised downloads); email notifications with per-category preferences and SMTP delivery; admin reports queue for messages and reviews with audited content access; review hiding. Migration `0003_phase2_leftovers`.
 - 95 Vitest tests + 20-step Playwright journey.
 

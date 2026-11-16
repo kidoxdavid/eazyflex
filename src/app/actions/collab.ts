@@ -66,7 +66,7 @@ export async function markNotificationsReadAction() {
 export async function savePrefsAction(f: FormData) {
   const u = await requireUser();
   const { savePrefs } = await import("@/server/notify");
-  await run(() => savePrefs(u.id, { applications: f.get("applications") === "on", messages: f.get("messages") === "on", assignments: f.get("assignments") === "on", invitations: f.get("invitations") === "on", reviews: f.get("reviews") === "on" }), `/${u.kind}/settings`, "Notification preferences saved");
+  await run(() => savePrefs(u.id, { applications: f.get("applications") === "on", messages: f.get("messages") === "on", assignments: f.get("assignments") === "on", invitations: f.get("invitations") === "on", reviews: f.get("reviews") === "on", alerts: f.get("alerts") === "on" }), `/${u.kind}/settings`, "Notification preferences saved");
 }
 
 export async function reportReviewAction(f: FormData) {

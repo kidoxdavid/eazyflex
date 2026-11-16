@@ -16,7 +16,7 @@ export async function loadActiveRules(): Promise<MatchRules & { version: number 
 
 const num = (v: string | null | undefined) => (v == null ? null : Number(v));
 
-async function loadWorkers(ids: string[]): Promise<Map<string, MatchWorker>> {
+export async function loadWorkers(ids: string[]): Promise<Map<string, MatchWorker>> {
   if (!ids.length) return new Map();
   const [profiles, sk, av, un] = await Promise.all([
     db.select({ p: workerProfiles, lat: serviceAreas.lat, lng: serviceAreas.lng }).from(workerProfiles).leftJoin(serviceAreas, eq(serviceAreas.id, workerProfiles.serviceAreaId)).where(inArray(workerProfiles.userId, ids)),
@@ -42,7 +42,7 @@ async function loadWorkers(ids: string[]): Promise<Map<string, MatchWorker>> {
   return out;
 }
 
-async function loadOpportunities(ids: string[]): Promise<Map<string, MatchOpportunity>> {
+export async function loadOpportunities(ids: string[]): Promise<Map<string, MatchOpportunity>> {
   if (!ids.length) return new Map();
   const [rows, sk, sched] = await Promise.all([
     db.select({ o: opportunities, lat: serviceAreas.lat, lng: serviceAreas.lng, areaName: serviceAreas.name }).from(opportunities).leftJoin(serviceAreas, eq(serviceAreas.id, opportunities.serviceAreaId)).where(inArray(opportunities.id, ids)),

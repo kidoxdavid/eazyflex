@@ -138,11 +138,12 @@ export async function saveOpportunity(userId: string, businessId: string, raw: u
 export type SearchParams = {
   q?: string; category?: string; arrangement?: string; engagementType?: string; payType?: string;
   minPay?: number; area?: string; skill?: string; experience?: string; recurring?: boolean; weekday?: number;
-  sort?: "newest" | "pay" | "relevance"; page?: number; pageSize?: number; ids?: string[];
+  sort?: "newest" | "pay" | "relevance"; page?: number; pageSize?: number; ids?: string[]; since?: Date;
 };
 
 export async function searchOpportunities(p: SearchParams) {
   const conds: SQL[] = [eq(opportunities.status, "published"), eq(businesses.status, "active")];
+  if (p.since) conds.push(sql`${opportunities.publishedAt} > ${p.since.toISOString()}::timestamptz`);
   if (p.ids) conds.push(p.ids.length ? inArray(opportunities.id, p.ids) : sql`false`);
   const q = p.q?.trim();
   if (q) conds.push(sql`${opportunities.search} @@ websearch_to_tsquery('english', ${q})`);

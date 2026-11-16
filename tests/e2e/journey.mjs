@@ -171,6 +171,55 @@ await step("leftovers: attachment upload + authenticated download, report → ad
   await m.goto(m.url()); await m.waitForSelector("text=Excel and Google Sheets");
   await m.close(); await a2.close(); await sa.close(); await f.close(); await p2.close();
 });
+await step("work-sharing: suggest → propose → each worker confirms → complete → handover → release reopens gap", async () => {
+  const m = await ctx({ width: 1280, height: 900 });
+  await m.goto(`${BASE}/sign-in`); await m.fill("#email", "owner@maple.demo.test"); await m.fill("#password", "DemoPass2026!"); await m.click("button:has-text('Sign in')"); await m.waitForURL(/business/);
+  await m.click("a:has-text('Shared customer support desk')"); await m.click("a:has-text('Shared coverage')");
+  await m.waitForSelector("text=Required per week"); must(await m.isVisible("text=30 h"), "30 h requirement not shown");
+  must(await m.locator("div:text-is('GAP')").count() > 0, "gaps not visualised before any proposals");
+  await m.click("a:has-text('Suggest coverage')"); await m.waitForSelector("text=eligible worker");
+  const txt = await m.textContent("main"); for (const n of ["Lena P.", "Marcus B.", "Ines M.", "Tomas N."]) must(txt.includes(n), "missing candidate " + n);
+  must(!txt.includes("Lena Park"), "full name leaked to business");
+  await m.click("button:has-text('Propose these')"); await m.waitForSelector("text=Nobody is booked until each worker confirms");
+  must(await m.isVisible("text=0%"), "proposed slices must not count as confirmed");
+  for (const [email] of [["lena@demo.test"], ["marcus@demo.test"], ["ines@demo.test"], ["tomas@demo.test"]]) {
+    const p = await ctx({ width: 1000, height: 800 });
+    await p.goto(`${BASE}/sign-in`); await p.fill("#email", email); await p.fill("#password", "DemoPass2026!"); await p.click("button:has-text('Sign in')"); await p.waitForURL(/worker/);
+    await p.goto(`${BASE}/worker/coverage`); await p.waitForSelector("text=Requests to confirm");
+    must(!(await p.isVisible("text=outside the availability")), email + " was proposed time outside their availability");
+    const n = await p.locator("button:has-text('Confirm')").count(); must(n > 0, email + " has nothing to confirm");
+    for (let i = 0; i < n; i++) { await p.locator("button:has-text('Confirm')").first().click(); await p.waitForSelector("text=Confirmed — this is now"); }
+    if (email === "lena@demo.test") { await p.goto(`${BASE}/worker/coverage`); must(await p.isVisible("text=My confirmed slices"), "confirmed section missing"); }
+    await p.close();
+  }
+  await m.goto(m.url().split("?")[0]); await m.waitForSelector("text=Every required hour is confirmed"); must(await m.isVisible("text=100%"), "not 100%");
+  must(await m.locator("div:text-is('GAP')").count() === 0, "gaps remain after full coverage");
+  // handover: Marcus (Thu 9-12) → Ines (Thu 12-15)
+  const mc = await ctx({ width: 1000, height: 800 });
+  await mc.goto(`${BASE}/sign-in`); await mc.fill("#email", "marcus@demo.test"); await mc.fill("#password", "DemoPass2026!"); await mc.click("button:has-text('Sign in')"); await mc.waitForURL(/worker/);
+  await mc.goto(`${BASE}/worker/coverage`); await mc.waitForSelector("text=You hand over");
+  await mc.fill("textarea[name=note]", "Ticket 4411 waits on the customer; two refunds pending approval."); await mc.click("button:has-text('Leave handover note')"); await mc.waitForSelector("text=Handover note saved");
+  const ic = await ctx({ width: 1000, height: 800 });
+  await ic.goto(`${BASE}/sign-in`); await ic.fill("#email", "ines@demo.test"); await ic.fill("#password", "DemoPass2026!"); await ic.click("button:has-text('Sign in')"); await ic.waitForURL(/worker/);
+  await ic.goto(`${BASE}/worker/coverage`); await ic.waitForSelector("text=Ticket 4411"); await ic.click("button:has-text('Acknowledge')"); await ic.waitForSelector("text=Handover acknowledged");
+  // a worker gives a slice back → the gap reopens for the business
+  await mc.goto(`${BASE}/worker/coverage`); await mc.locator("summary:has-text('Give this slice back')").first().click(); await mc.fill("details input[name=reason]", "Childcare fell through this week"); await mc.click("details button:has-text('Release')"); await mc.waitForSelector("text=Slice released");
+  await m.reload(); must(await m.locator("div:text-is('GAP')").count() > 0, "gap did not reappear after release"); must(!(await m.isVisible("text=Every required hour is confirmed")), "still shows complete");
+  // other businesses cannot open this coverage page
+  const o = await ctx({ width: 1000, height: 800 });
+  await o.goto(`${BASE}/sign-in`); await o.fill("#email", "owner@pixelcart.demo.test"); await o.fill("#password", "DemoPass2026!"); await o.click("button:has-text('Sign in')"); await o.waitForURL(/business/);
+  const url = m.url().split("?")[0]; await o.goto(url); must((await o.textContent("body")).includes("could not be found"), "other business could open coverage");
+  for (const pg of [m, mc, ic, o]) await pg.close();
+});
+await step("saved search: save with alerts, list, toggle, delete", async () => {
+  const p = await ctx({ width: 1000, height: 800 });
+  await p.goto(`${BASE}/sign-in`); await p.fill("#email", "sam@demo.test"); await p.fill("#password", "DemoPass2026!"); await p.click("button:has-text('Sign in')"); await p.waitForURL(/worker/);
+  await p.goto(`${BASE}/opportunities?q=bookkeeping&arrangement=remote`); await p.click("summary:has-text('Save this search')"); await p.fill("input[name=name]", "Remote bookkeeping"); await p.click("details button:has-text('Save')");
+  await p.waitForURL(/worker\/searches/); await p.waitForSelector("text=Remote bookkeeping"); must(await p.isVisible("text=alerts on"), "alerts not on");
+  await p.click("button:has-text('Turn alerts off')"); await p.waitForSelector("text=alerts off");
+  await p.click("button:has-text('Delete')"); await p.waitForSelector("text=Search deleted"); must(!(await p.isVisible("text=Remote bookkeeping")), "search still listed");
+  await p.close();
+});
 await step("business: talent directory hides contact details", async () => {
   await b.goto(`${BASE}/business/talent`); const t = await b.textContent("main");
   must(!t.includes("@"), "an email address appears in the talent directory");

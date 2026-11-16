@@ -5,12 +5,12 @@ import { sendEmail } from "./email";
 import { brand } from "@/lib/brand";
 
 type Tx = Pick<Db, "insert">;
-export const EMAIL_CATEGORIES = ["applications", "messages", "assignments", "invitations", "reviews"] as const;
+export const EMAIL_CATEGORIES = ["applications", "messages", "assignments", "invitations", "reviews", "alerts"] as const;
 export type EmailCategory = (typeof EMAIL_CATEGORIES)[number];
 const CATEGORY: Record<string, EmailCategory> = {
-  application_new: "applications", application_update: "applications", message: "messages", assignment: "assignments", invitation: "invitations", review: "reviews",
+  application_new: "applications", application_update: "applications", message: "messages", assignment: "assignments", invitation: "invitations", review: "reviews", coverage: "assignments", alert: "alerts",
 };
-const PREF_COL = { applications: "emailApplications", messages: "emailMessages", assignments: "emailAssignments", invitations: "emailInvitations", reviews: "emailReviews" } as const;
+const PREF_COL = { applications: "emailApplications", messages: "emailMessages", assignments: "emailAssignments", invitations: "emailInvitations", reviews: "emailReviews", alerts: "emailAlerts" } as const;
 
 /** In-app notification (always) + an email if the user's per-category preference allows. Emails never contain message text. */
 export async function notify(userId: string, type: string, title: string, body: string, href: string, tx: Tx = db) {
@@ -30,10 +30,12 @@ export async function notify(userId: string, type: string, title: string, body: 
 
 export async function getPrefs(userId: string) {
   const [p] = await db.select().from(notificationPrefs).where(eq(notificationPrefs.userId, userId)).limit(1);
-  const d = { emailApplications: true, emailMessages: true, emailAssignments: true, emailInvitations: true, emailReviews: true };
+  const d = { emailApplications: true, emailMessages: true, emailAssignments: true, emailInvitations: true, emailReviews: true, emailAlerts: true };
   return p ? { ...d, ...p } : d;
 }
-export async function savePrefs(userId: string, v: Record<EmailCategory, boolean>) {
-  const vals = { emailApplications: !!v.applications, emailMessages: !!v.messages, emailAssignments: !!v.assignments, emailInvitations: !!v.invitations, emailReviews: !!v.reviews, updatedAt: new Date() };
+/** Only the categories provided are changed. */
+export async function savePrefs(userId: string, v: Partial<Record<EmailCategory, boolean>>) {
+  const vals: Record<string, unknown> = { updatedAt: new Date() };
+  for (const c of EMAIL_CATEGORIES) if (v[c] !== undefined) vals[PREF_COL[c]] = !!v[c];
   await db.insert(notificationPrefs).values({ userId, ...vals }).onConflictDoUpdate({ target: notificationPrefs.userId, set: vals });
 }

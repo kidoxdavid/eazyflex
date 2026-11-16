@@ -2,6 +2,8 @@ import Link from "next/link";
 import { OpportunityCard } from "@/components/opportunity-card";
 import { SearchBar } from "@/components/search-bar";
 import { Button, EmptyState, Select, Input, Card, Flash } from "@/components/ui";
+import { saveSearchAction } from "@/app/actions/worker";
+import { cleanParams } from "@/server/services/saved-searches";
 import { ENGAGEMENT_LABELS, PAY_LABELS, searchOpportunities } from "@/server/services/opportunities";
 import { getSkills } from "@/server/services/catalog";
 import { getCurrentUser } from "@/server/auth/session";
@@ -50,6 +52,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<SP>
           </Card>
         </form>
         <section aria-live="polite">
+          {user?.kind === "worker" && Object.keys(cleanParams(sp)).length > 0 && (
+            <details className="mb-3 rounded-xl border border-border bg-surface p-3 text-sm"><summary className="cursor-pointer font-semibold">Save this search</summary>
+              <form action={saveSearchAction} className="mt-2 flex flex-wrap items-end gap-3">{Object.entries(cleanParams(sp)).map(([k, v]) => <input key={k} type="hidden" name={`p_${k}`} value={v} />)}
+                <label className="text-sm font-semibold">Name<Input name="name" required minLength={2} maxLength={80} className="mt-1 w-56 font-normal" /></label>
+                <label className="flex min-h-11 items-center gap-2"><input type="checkbox" name="alerts" defaultChecked className="size-5" /> Alert me about new matches</label><Button type="submit">Save</Button></form></details>)}
           <p className="mb-3 text-sm text-muted">{res.total} {res.total === 1 ? "opportunity" : "opportunities"}</p>
           {res.items.length === 0
             ? <EmptyState title="No opportunities match those filters" body="Try removing a filter or searching a broader term." action={<Link className="font-semibold text-primary underline" href="/opportunities">Clear filters</Link>} />
