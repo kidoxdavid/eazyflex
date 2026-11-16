@@ -36,6 +36,13 @@
       "when": 1794800715121,
       "tag": "0004_phase4_coverage",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794801312534,
+      "tag": "0005_team_and_renewals",
+      "breakpoints": true
     }
   ]
 }

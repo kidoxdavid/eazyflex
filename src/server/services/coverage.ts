@@ -4,7 +4,8 @@ import { businesses, coverageSlices, handoverNotes, opportunities, opportunitySc
 import { audit } from "../audit";
 import { notify } from "../notify";
 import { ServiceError } from "./identity";
-import { assertBusinessMember } from "./opportunities";
+import { assertBusinessMember, assertBusinessPermission } from "./opportunities";
+import type { BizPerm } from "../business-rbac";
 import { loadActiveRules, loadOpportunities, loadWorkers, privateName } from "./matching";
 import { scoreMatch } from "../matching/score";
 import { analyseCoverage, contains, findHandovers, mergeWindows, overlaps, subtractWindows, suggestCoverage, totalMinutes, type Candidate, type Slice, type Win } from "../coverage/engine";
@@ -15,10 +16,11 @@ const toSlice = (s: SliceRow): Slice => ({ id: s.id, workerId: s.workerId, statu
 export const fmtWin = (w: Win) => `${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][w.weekday]} ${hm(w.startMinute)}–${hm(w.endMinute)}`;
 const hm = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
-async function ownOpportunity(userId: string, opportunityId: string) {
+async function ownOpportunity(userId: string, opportunityId: string, perm?: BizPerm) {
   const [o] = await db.select().from(opportunities).where(eq(opportunities.id, opportunityId)).limit(1);
   if (!o) throw new ServiceError("Opportunity not found", "not_found");
   try { await assertBusinessMember(userId, o.businessId); } catch { throw new ServiceError("Opportunity not found", "not_found"); }
+  if (perm) await assertBusinessPermission(userId, o.businessId, perm);
   return o;
 }
 const requiredWindows = async (opportunityId: string) => (await db.select().from(opportunitySchedules).where(eq(opportunitySchedules.opportunityId, opportunityId))).map(toWin);
@@ -60,7 +62,7 @@ async function loadCandidates(opportunityId: string) {
 
 /** Preview only — nothing is stored or booked. */
 export async function suggest(userId: string, opportunityId: string) {
-  await ownOpportunity(userId, opportunityId);
+  await ownOpportunity(userId, opportunityId, "hiring.decide");
   const required = await requiredWindows(opportunityId);
   if (!required.length) throw new ServiceError("This opportunity has no scheduled days/hours to cover");
   const existing = (await db.select().from(coverageSlices).where(eq(coverageSlices.opportunityId, opportunityId))).map(toSlice);
@@ -74,7 +76,7 @@ export async function suggest(userId: string, opportunityId: string) {
 }
 
 export async function proposeSlices(userId: string, opportunityId: string, input: { workerId: string; weekday: number; startMinute: number; endMinute: number }[]) {
-  const o = await ownOpportunity(userId, opportunityId);
+  const o = await ownOpportunity(userId, opportunityId, "hiring.decide");
   if (o.status !== "published") throw new ServiceError("Coverage can be arranged only for published opportunities");
   if (!input.length) throw new ServiceError("Choose at least one slice to propose");
   if (input.length > 60) throw new ServiceError("Too many slices at once");
@@ -153,7 +155,7 @@ export async function respondToSlice(workerId: string, sliceId: string, decision
 export async function releaseSlice(userId: string, sliceId: string, reason: string) {
   const { s, o } = await loadSlice(sliceId);
   const isWorker = s.workerId === userId;
-  if (!isWorker) await ownOpportunity(userId, o.id);
+  if (!isWorker) await ownOpportunity(userId, o.id, "hiring.decide");
   if (!["proposed", "confirmed"].includes(s.status)) throw new ServiceError("This slice is already closed");
   if (reason.trim().length < 5) throw new ServiceError("Give a short reason");
   await db.transaction(async (tx) => {
@@ -193,7 +195,7 @@ export async function addHandover(userId: string, fromSliceId: string, toSliceId
   if (a.o.id !== b.o.id) throw new ServiceError("Slices must belong to the same opportunity");
   if (a.s.status !== "confirmed" || b.s.status !== "confirmed") throw new ServiceError("Both slices must be confirmed");
   if (!(a.s.weekday === b.s.weekday && a.s.endMinute === b.s.startMinute && a.s.workerId !== b.s.workerId)) throw new ServiceError("These slices are not consecutive handover slices");
-  if (a.s.workerId !== userId) await ownOpportunity(userId, a.o.id); // outgoing worker or the business
+  if (a.s.workerId !== userId) await ownOpportunity(userId, a.o.id, "hiring.decide"); // outgoing worker or a manager/owner
   if (note.trim().length < 5) throw new ServiceError("Write a short handover note (what is done, what is pending)");
   try { await db.insert(handoverNotes).values({ opportunityId: a.o.id, fromSliceId, toSliceId, note: note.trim().slice(0, 2000), authorId: userId }); }
   catch (e: any) { if (e?.cause?.code === "23505" || e?.code === "23505") throw new ServiceError("A handover note already exists for this handover", "conflict"); throw e; }
@@ -209,6 +211,6 @@ export const _s = subtractWindows;
 
 /** Workers who could be proposed manually (same eligibility as suggestions). */
 export async function listCandidates(userId: string, opportunityId: string) {
-  await ownOpportunity(userId, opportunityId);
+  await ownOpportunity(userId, opportunityId, "hiring.decide");
   return (await loadCandidates(opportunityId)).map((c) => ({ workerId: c.c.workerId, name: c.name, score: c.score }));
 }

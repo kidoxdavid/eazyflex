@@ -11,11 +11,11 @@ export async function registerAction(f: FormData) {
     const u = await registerUser({
       kind, fullName: str(f, "fullName"), email: str(f, "email"), password: str(f, "password"), phone: str(f, "phone") ?? "",
       city: str(f, "city") ?? "", postalPrefix: str(f, "postalPrefix") ?? "", businessName: str(f, "businessName") || undefined,
-      businessKind: str(f, "businessKind") || undefined, acceptTerms: bool(f, "acceptTerms"),
+      businessKind: str(f, "businessKind") || undefined, inviteToken: str(f, "inviteToken") || undefined, acceptTerms: bool(f, "acceptTerms"),
     });
     await createSession(u.id, (await headers()).get("user-agent"));
     return kind === "worker" ? "/worker/onboarding?welcome=1" : "/business?welcome=1";
-  }, `/register?type=${kind}`);
+  }, `/register?type=${kind}${str(f, "inviteToken") ? `&invite=${encodeURIComponent(str(f, "inviteToken")!)}` : ""}`);
 }
 
 export async function loginAction(f: FormData) {

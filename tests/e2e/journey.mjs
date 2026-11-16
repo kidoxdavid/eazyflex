@@ -84,7 +84,7 @@ await step("business: invalid compensation is rejected with a clear error", asyn
 await step("business: shortlists applicant, sends offer; worker accepts; opportunity fills", async () => {
   const m = await ctx({ width: 1280, height: 900 });
   await m.goto(`${BASE}/sign-in`); await m.fill("#email", "owner@maple.demo.test"); await m.fill("#password", "DemoPass2026!"); await m.click("button:has-text('Sign in')"); await m.waitForURL(/business/);
-  await m.click("a:has-text('Weekly bookkeeping')");
+  await m.click("a:has-text('Bookkeeping catch-up')");
   const card = m.locator("div", { has: m.locator("h3", { hasText: "Riley Tester" }) }).last();
   await m.locator("h3:has-text('Riley Tester')").waitFor();
   await m.locator("form:has(input[name=to][value=shortlisted]) button").first().click().catch(() => {});
@@ -98,16 +98,16 @@ await step("business: shortlists applicant, sends offer; worker accepts; opportu
 });
 await step("collab: message, contact-info guard, deliver work, approve, blind review", async () => {
   // Worker "w" now holds an accepted assignment on the Maple bookkeeping job.
-  await w.goto(`${BASE}/worker/assignments`); await w.click("a:has-text('Weekly bookkeeping')");
+  await w.goto(`${BASE}/worker/assignments`); await w.click("a:has-text('Bookkeeping catch-up')");
   await w.click("button:has-text('Start work')"); await w.waitForSelector("text=Work started");
   await w.click("button:has-text('Message business')"); await w.waitForURL(/worker\/messages\//);
   await w.fill("#body", "Happy to start — I'll send the first batch Friday."); await w.click("button:has-text('Send')"); await w.waitForSelector("text=send the first batch");
   await w.goBack(); await w.goBack().catch(() => {});
-  await w.goto(`${BASE}/worker/assignments`); await w.click("a:has-text('Weekly bookkeeping')");
+  await w.goto(`${BASE}/worker/assignments`); await w.click("a:has-text('Bookkeeping catch-up')");
   await w.fill("#note", "First batch of invoices entered and reconciled."); await w.fill("#h", "3.5"); await w.click("button:has-text('Submit for approval')"); await w.waitForSelector("text=Work submitted for review");
   const m = await ctx({ width: 1280, height: 900 });
   await m.goto(`${BASE}/sign-in`); await m.fill("#email", "owner@maple.demo.test"); await m.fill("#password", "DemoPass2026!"); await m.click("button:has-text('Sign in')"); await m.waitForURL(/business/);
-  await m.goto(`${BASE}/business/assignments`); await m.click("a:has-text('Weekly bookkeeping')");
+  await m.goto(`${BASE}/business/assignments`); await m.click("a:has-text('Bookkeeping catch-up')");
   must(await m.isVisible("text=Riley T."), "business should see first name + initial only");
   must(!(await m.textContent("main")).includes("Riley Tester"), "full worker name leaked to business");
   await m.click("button:has-text('Approve completion')"); await m.waitForSelector("text=Work approved");
@@ -219,6 +219,52 @@ await step("saved search: save with alerts, list, toggle, delete", async () => {
   await p.click("button:has-text('Turn alerts off')"); await p.waitForSelector("text=alerts off");
   await p.click("button:has-text('Delete')"); await p.waitForSelector("text=Search deleted"); must(!(await p.isVisible("text=Remote bookkeeping")), "search still listed");
   await p.close();
+});
+await step("team: invite → join via link → read-only member is blocked server-side → owner removes member", async () => {
+  const { default: pg } = await import(require.resolve("pg"));
+  const dbq = async (q, a) => { const c = new pg.Client({ connectionString: process.env.DATABASE_URL ?? "postgres://postgres@localhost:5432/eazyflex" }); await c.connect(); const r = await c.query(q, a); await c.end(); return r.rows; };
+  const memEmail = `e2e.member.${stamp}@test.example`;
+  const o = await ctx({ width: 1280, height: 900 });
+  await o.goto(`${BASE}/sign-in`); await o.fill("#email", "owner@maple.demo.test"); await o.fill("#password", "DemoPass2026!"); await o.click("button:has-text('Sign in')"); await o.waitForURL(/business/);
+  await o.goto(`${BASE}/business/team`); await o.fill("#em", memEmail); await o.selectOption("#rl", "member"); await o.click("button:has-text('Send invitation')"); await o.waitForSelector("text=Invitation sent");
+  must(await o.isVisible(`text=${memEmail}`), "pending invite not listed");
+  const row = (await dbq("select link from email_outbox where to_email=$1 and template='team_invitation' order by created_at desc limit 1", [memEmail]))[0];
+  const link = row.link.replace(/^https?:\/\/[^/]+/, BASE);
+  const m = await ctx({ width: 1100, height: 900 });
+  await m.goto(link); await m.waitForSelector("text=Join Maple"); await m.click("a:has-text('Create my account')");
+  must((await m.inputValue("#email")) === memEmail, "invited email not prefilled"); must(!(await m.isVisible("#businessName")), "business name field shown to invitee");
+  await m.fill("#fullName", "Mo Member"); await m.fill("#password", "CorrectHorse9"); await m.check("input[name=acceptTerms]"); await m.click("button:has-text('Create account')"); await m.waitForURL(/business/);
+  await m.waitForSelector("text=read-only"); must(!(await m.locator("nav a:has-text('Post Work')").count()), "Post Work visible to a member");
+  await m.goto(`${BASE}/business/post?type=micro_task`);
+  await m.fill("#title", "Member should not post this"); await m.fill("#description", "A description long enough to pass validation so that the role check is what rejects it."); await m.selectOption("#cat", { index: 1 }); await m.fill("#pmin", "30"); await m.click("button:has-text('Publish')");
+  await m.waitForSelector("[role=alert]:has-text('Your role (member)')");
+  must((await dbq("select count(*)::int n from opportunities where title='Member should not post this'"))[0].n === 0, "member managed to create an opportunity");
+  await o.goto(`${BASE}/business/team`); await o.locator(`div:has(> div > p:has-text('${memEmail}')) button:has-text('Remove')`).first().click().catch(async () => { await o.locator("button:has-text('Remove')").first().click(); });
+  await o.waitForSelector("text=Team member removed");
+  await m.goto(`${BASE}/business`); await m.waitForSelector("text=not part of a business");
+  for (const pg of [o, m]) await pg.close();
+});
+await step("recurring: accept → cancel a session → renewal offer → worker accepts (explicit) → end term → reviews open", async () => {
+  const p = await ctx({ width: 1100, height: 900 }); const b = await ctx({ width: 1280, height: 900 });
+  await p.goto(`${BASE}/sign-in`); await p.fill("#email", "priya@demo.test"); await p.fill("#password", "DemoPass2026!"); await p.click("button:has-text('Sign in')"); await p.waitForURL(/worker/);
+  await b.goto(`${BASE}/sign-in`); await b.fill("#email", "owner@northgate.demo.test"); await b.fill("#password", "DemoPass2026!"); await b.click("button:has-text('Sign in')"); await b.waitForURL(/business/);
+  await p.goto(`${BASE}/opportunities?q=Tenant+communications`); await p.click("a:has-text('View & apply') >> nth=0");
+  await p.fill("#proposal", "I coordinate inboxes and calendars every week and can start now."); await p.click("button:has-text('Submit application')"); await p.waitForURL(/worker\/applications/);
+  await b.click("a:has-text('Tenant communications')"); await b.locator("form:has(input[name=to][value=offer_received]) button").first().click(); await b.waitForSelector("span:has-text('offer received')");
+  await p.goto(`${BASE}/worker/applications`); await p.click("button:has-text('Accept offer')"); await p.waitForSelector("text=Offer accepted");
+  await p.goto(`${BASE}/worker/assignments`); await p.click("a:has-text('Tenant communications')");
+  await p.waitForSelector("text=Upcoming sessions"); must(await p.isVisible("text=Term"), "term card missing"); must(!(await p.isVisible("button:has-text('Submit for approval')")), "one-shot submit shown for recurring");
+  await p.locator("summary:has-text('Can’t make it')").first().click(); await p.fill("details input[name=reason]", "Dentist appointment that morning"); await p.click("details button:has-text('Cancel session')"); await p.waitForSelector("text=Session cancelled");
+  await b.goto(`${BASE}/business/assignments`); await b.click("a:has-text('Tenant communications')"); await b.waitForSelector("text=Propose a renewal");
+  const end = new Date(Date.now() + 70 * 86400000).toISOString().slice(0, 10);
+  await b.fill("#ned", end); await b.fill("#nr", "31.50"); await b.click("button:has-text('Offer renewal')"); await b.waitForSelector("text=Nothing changes unless the worker accepts");
+  await p.reload(); await p.waitForSelector("text=Renewal offer"); must(await p.isVisible("text=nothing changes unless you accept"), "explicit-agreement notice missing");
+  await p.click("button:has-text('Accept renewal')"); await p.waitForSelector("text=Renewal accepted");
+  must(await p.isVisible(`text=${end}`), "new end date not shown"); must(await p.isVisible("text=$31.50"), "new rate not shown");
+  await b.reload(); await b.waitForSelector("text=accepted"); must(await b.isVisible(`text=${end}`), "business does not see the extended term");
+  await b.click("button:has-text('End term')"); await b.waitForSelector("text=Term ended"); await b.waitForSelector("text=Reviews");
+  await p.reload(); await p.waitForSelector("text=Reviews"); must(!(await p.isVisible("button:has-text('Record session')")), "sessions still actionable after the term ended");
+  await p.close(); await b.close();
 });
 await step("business: talent directory hides contact details", async () => {
   await b.goto(`${BASE}/business/talent`); const t = await b.textContent("main");

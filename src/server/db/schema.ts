@@ -289,6 +289,7 @@ export const opportunities = pgTable("opportunities", {
   experienceLevel: experienceLevel("experience_level").notNull().default("entry"),
   recurring: boolean("recurring").notNull().default(false),
   recurrenceNote: text("recurrence_note"),
+  preferSameWorker: boolean("prefer_same_worker").notNull().default(true), // recurring: renew with the same worker where possible
   deliverables: text("deliverables"),
   equipment: text("equipment"),
   selectionProcess: text("selection_process"),
@@ -605,3 +606,50 @@ export const handoverNotes = pgTable("handover_notes", {
   acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
   createdAt: createdAt(),
 }, (t) => [uniqueIndex("handover_pair_uq").on(t.fromSliceId, t.toSliceId)]);
+
+// ---------- Team members ----------
+export const businessInvitations = pgTable("business_invitations", {
+  id: id(),
+  businessId: uuid("business_id").notNull().references(() => businesses.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  role: businessMemberRole("role").notNull(), // manager | member (never owner)
+  tokenHash: text("token_hash").notNull().unique(),
+  invitedBy: uuid("invited_by").notNull().references(() => users.id),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [index("biz_invites_business_idx").on(t.businessId)]);
+
+// ---------- Recurring work: occurrences and renewals ----------
+export const occurrenceStatus = pgEnum("occurrence_status", ["scheduled", "completed", "missed", "cancelled"]);
+export const renewalStatus = pgEnum("renewal_status", ["pending", "accepted", "declined", "withdrawn", "expired"]);
+
+/** One dated instance of a recurring assignment's weekly schedule. */
+export const assignmentOccurrences = pgTable("assignment_occurrences", {
+  id: id(),
+  assignmentId: uuid("assignment_id").notNull().references(() => assignments.id, { onDelete: "cascade" }),
+  occursOn: date("occurs_on").notNull(),
+  startMinute: smallint("start_minute").notNull(),
+  endMinute: smallint("end_minute").notNull(),
+  status: occurrenceStatus("status").notNull().default("scheduled"),
+  hours: numeric("hours", { precision: 5, scale: 2 }),
+  workerNote: text("worker_note"),
+  cancelReason: text("cancel_reason"),
+  cancelledBy: uuid("cancelled_by").references(() => users.id),
+  confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+  confirmedBy: uuid("confirmed_by").references(() => users.id),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("occurrence_uq").on(t.assignmentId, t.occursOn, t.startMinute), index("occurrence_assignment_idx").on(t.assignmentId, t.occursOn)]);
+
+export const renewalOffers = pgTable("renewal_offers", {
+  id: id(),
+  assignmentId: uuid("assignment_id").notNull().references(() => assignments.id, { onDelete: "cascade" }),
+  proposedBy: uuid("proposed_by").notNull().references(() => users.id),
+  newEndDate: date("new_end_date").notNull(),
+  newAgreedCents: integer("new_agreed_cents"), // null = unchanged
+  note: text("note"),
+  status: renewalStatus("status").notNull().default("pending"),
+  createdAt: createdAt(),
+  respondedAt: timestamp("responded_at", { withTimezone: true }),
+}, (t) => [uniqueIndex("renewal_one_pending_uq").on(t.assignmentId).where(sql`status = 'pending'`)]);

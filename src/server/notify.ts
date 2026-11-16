@@ -8,7 +8,7 @@ type Tx = Pick<Db, "insert">;
 export const EMAIL_CATEGORIES = ["applications", "messages", "assignments", "invitations", "reviews", "alerts"] as const;
 export type EmailCategory = (typeof EMAIL_CATEGORIES)[number];
 const CATEGORY: Record<string, EmailCategory> = {
-  application_new: "applications", application_update: "applications", message: "messages", assignment: "assignments", invitation: "invitations", review: "reviews", coverage: "assignments", alert: "alerts",
+  application_new: "applications", application_update: "applications", message: "messages", assignment: "assignments", invitation: "invitations", review: "reviews", coverage: "assignments", renewal: "assignments", alert: "alerts",
 };
 const PREF_COL = { applications: "emailApplications", messages: "emailMessages", assignments: "emailAssignments", invitations: "emailInvitations", reviews: "emailReviews", alerts: "emailAlerts" } as const;
 

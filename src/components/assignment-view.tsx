@@ -3,11 +3,13 @@ import { Badge, Button, Card, Field, Flash, Input, PageHeader, Textarea } from "
 import { FileLinks, PAYSUFFIX, ReviewSection, STATUS_TONE, formatMoney } from "./collab";
 import { businessAssignmentAction, openConversationAction, workerAssignmentAction } from "@/app/actions/collab";
 import type { getAssignment } from "@/server/services/assignments";
+import { RecurringPanel } from "./recurring-panel";
+import type { getRecurringView } from "@/server/services/recurring";
 
 type D = Awaited<ReturnType<typeof getAssignment>>;
 const Act = ({ id, action, children, variant = "outline", fields }: { id: string; action: string; children: React.ReactNode; variant?: "primary" | "outline" | "danger"; fields?: React.ReactNode }) => null;
 
-export function AssignmentView({ d, userId, sp }: { d: D; userId: string; sp: { ok?: string; error?: string } }) {
+export function AssignmentView({ d, userId, sp, rec, canManage = true }: { d: D; userId: string; sp: { ok?: string; error?: string }; rec?: Awaited<ReturnType<typeof getRecurringView>>; canManage?: boolean }) {
   const a = d.a, w = d.side === "worker";
   const act = w ? workerAssignmentAction : businessAssignmentAction;
   return (
@@ -19,10 +21,11 @@ export function AssignmentView({ d, userId, sp }: { d: D; userId: string; sp: { 
 
       <div className="mb-5 flex flex-wrap gap-3">
         {w && a.status === "confirmed" && <form action={act}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="action" value="start" /><Button type="submit">Start work</Button></form>}
-        {!w && a.status === "submitted" && <form action={act}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="action" value="approve" /><Button type="submit">Approve completion</Button></form>}
+        {!w && !rec && a.status === "submitted" && <form action={act}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="action" value="approve" /><Button type="submit">Approve completion</Button></form>}
       </div>
 
-      {w && ["confirmed", "in_progress", "changes_requested"].includes(a.status) && (
+      {rec && <div className="mb-5"><RecurringPanel v={rec} canManage={canManage} /></div>}
+      {w && !rec && ["confirmed", "in_progress", "changes_requested"].includes(a.status) && (
         <Card className="mb-5"><h2 className="font-sans text-lg font-semibold">Submit work</h2>
           <form action={act} encType="multipart/form-data" className="mt-3 space-y-3"><input type="hidden" name="id" value={a.id} /><input type="hidden" name="action" value="submit" />
             <Field label="What are you submitting?" htmlFor="note"><Textarea id="note" name="note" required minLength={10} /></Field>
@@ -31,7 +34,7 @@ export function AssignmentView({ d, userId, sp }: { d: D; userId: string; sp: { 
             <Field label="Attach files (optional)" htmlFor="fl" hint="Up to 3 files: pdf, png, jpg, docx, xlsx, csv, txt; 10 MB each. Files are not virus-scanned yet."><input id="fl" name="files" type="file" multiple className="block text-sm" accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.csv,.txt" /></Field>
             <Button type="submit">Submit for approval</Button></form></Card>
       )}
-      {!w && a.status === "submitted" && (
+      {!w && !rec && a.status === "submitted" && (
         <Card className="mb-5"><h2 className="font-sans text-lg font-semibold">Request changes</h2>
           <form action={act} className="mt-3 space-y-3"><input type="hidden" name="id" value={a.id} /><input type="hidden" name="action" value="request_changes" /><Field label="What needs to change?" htmlFor="n"><Textarea id="n" name="note" required minLength={5} rows={3} /></Field><Button variant="outline" type="submit">Request changes</Button></form></Card>
       )}

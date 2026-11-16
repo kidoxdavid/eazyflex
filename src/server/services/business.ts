@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "../db/client";
 import { applications, businessMembers, businesses, opportunities, users, verifications, workerProfiles, workerSkills, skills, serviceAreas } from "../db/schema";
 import { ServiceError } from "./identity";
-import { assertBusinessMember } from "./opportunities";
+import { assertBusinessPermission } from "./opportunities";
 import { audit } from "../audit";
 import { privateName } from "./matching";
 
@@ -20,14 +20,14 @@ export const businessProfileSchema = z.object({
 });
 
 export async function saveBusinessProfile(userId: string, businessId: string, raw: unknown) {
-  await assertBusinessMember(userId, businessId);
+  await assertBusinessPermission(userId, businessId, "profile.edit");
   const i = businessProfileSchema.parse(raw);
   await db.update(businesses).set({ ...i, website: i.website || null, contactEmail: i.contactEmail || null, serviceAreaId: i.serviceAreaId || null, updatedAt: new Date() }).where(eq(businesses.id, businessId));
 }
 
 /** Business verification is a manual review workflow: submission creates a queue item; only a Verification Officer can verify. */
 export async function submitBusinessVerification(userId: string, businessId: string, evidenceNote: string) {
-  await assertBusinessMember(userId, businessId);
+  await assertBusinessPermission(userId, businessId, "verification.submit");
   if (evidenceNote.trim().length < 10) throw new ServiceError("Describe how we can verify the business (registration number, website, or similar)");
   const [b] = await db.select().from(businesses).where(eq(businesses.id, businessId)).limit(1);
   if (b.verificationStatus === "verified" || b.verificationStatus === "submitted") throw new ServiceError("Verification is already " + b.verificationStatus);
@@ -68,6 +68,6 @@ export async function browseTalent(userId: string, f: z.infer<typeof talentFilte
 }
 
 export async function listBusinessOpportunities(businessId: string) {
-  return db.select({ o: opportunities, applicants: sql<number>`(select count(*)::int from ${applications} a where a.opportunity_id = ${opportunities.id})` })
+  return db.select({ o: opportunities, applicants: sql<number>`(select count(*)::int from applications a where a.opportunity_id = "opportunities"."id")` })
     .from(opportunities).where(eq(opportunities.businessId, businessId)).orderBy(sql`${opportunities.createdAt} desc`);
 }

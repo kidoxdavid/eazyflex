@@ -6,7 +6,7 @@ import { markInvitationAccepted } from "./relationships";
 import { notify } from "../notify";
 import { audit } from "../audit";
 import { ServiceError } from "./identity";
-import { assertBusinessMember } from "./opportunities";
+import { assertBusinessMember, assertBusinessPermission } from "./opportunities";
 import { matchWorkerToOpportunity } from "./matching";
 
 type Status = typeof applications.$inferSelect["status"];
@@ -83,7 +83,10 @@ async function transition(appId: string, actorId: string, to: Status, side: "wor
   if (!row) throw new ServiceError("Application not found", "not_found");
   if (side === "worker") {
     if (row.a.workerId !== actorId) throw new ServiceError("Application not found", "not_found"); // do not reveal existence
-  } else await assertBusinessMember(actorId, row.o.businessId).catch(() => { throw new ServiceError("Application not found", "not_found"); });
+  } else {
+    await assertBusinessMember(actorId, row.o.businessId).catch(() => { throw new ServiceError("Application not found", "not_found"); });
+    await assertBusinessPermission(actorId, row.o.businessId, "hiring.decide");
+  }
   const table = side === "worker" ? WORKER_TRANSITIONS : BUSINESS_TRANSITIONS;
   if (!table[row.a.status]?.includes(to)) throw new ServiceError(`Cannot change an application from ${row.a.status.replace(/_/g, " ")} to ${to.replace(/_/g, " ")}`);
   if (to === "accepted" && row.o.status !== "published") throw new ServiceError("This opportunity is no longer open");
@@ -123,7 +126,7 @@ export async function workerSetApplicationStatus(userId: string, appId: string, 
 export async function saveBusinessNote(userId: string, appId: string, note: string) {
   const [row] = await db.select({ o: opportunities }).from(applications).innerJoin(opportunities, eq(opportunities.id, applications.opportunityId)).where(eq(applications.id, appId)).limit(1);
   if (!row) throw new ServiceError("Application not found", "not_found");
-  await assertBusinessMember(userId, row.o.businessId);
+  await assertBusinessPermission(userId, row.o.businessId, "hiring.decide");
   await db.update(applications).set({ businessNote: note.slice(0, 2000) }).where(eq(applications.id, appId));
 }
 

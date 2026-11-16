@@ -26,6 +26,7 @@ export const registerSchema = z.object({
   postalPrefix: z.string().trim().toUpperCase().regex(/^[A-Z]\d[A-Z]$/, "Enter the first three characters of your postal code, e.g. T2P").optional().or(z.literal("")),
   businessName: z.string().trim().min(2).max(160).optional(),
   businessKind: z.enum(["registered_business", "household"]).optional(),
+  inviteToken: z.string().min(20).max(100).optional().or(z.literal("")),
   acceptTerms: z.literal(true, { message: "You must accept the Terms and Privacy Policy" }),
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
@@ -38,7 +39,13 @@ async function issueToken(userId: string, purpose: "email_verification" | "passw
 
 export async function registerUser(raw: unknown) {
   const input = registerSchema.parse(raw);
-  if (input.kind === "business" && !input.businessName) throw new ServiceError("Business or household name is required");
+  let invite: Awaited<ReturnType<typeof import("./team").previewInvite>> = null;
+  if (input.inviteToken) {
+    if (input.kind !== "business") throw new ServiceError("Team invitations are for business accounts");
+    invite = await (await import("./team")).previewInvite(input.inviteToken);
+    if (!invite) throw new ServiceError("This invitation is invalid, expired or was withdrawn", "not_found");
+    if (invite.email !== input.email) throw new ServiceError("Register with the email address the invitation was sent to", "forbidden");
+  } else if (input.kind === "business" && !input.businessName) throw new ServiceError("Business or household name is required");
   const existing = await db.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = ${input.email}`).limit(1);
   if (existing.length) throw new ServiceError("An account with this email already exists", "conflict");
   const passwordHash = await hashPassword(input.password);
@@ -46,13 +53,21 @@ export async function registerUser(raw: unknown) {
   const user = await db.transaction(async (tx) => {
     const [u] = await tx.insert(users).values({
       email: input.email, passwordHash, kind: input.kind, fullName: input.fullName, phone: input.phone || null,
+      // Opening the emailed invitation link proves control of the mailbox, so invited users start with a verified email.
+      ...(invite ? { emailVerifiedAt: new Date() } : {}),
     }).returning();
     await tx.insert(userConsents).values([
       { userId: u.id, documentType: "terms", version: brand.policyVersions.terms },
       { userId: u.id, documentType: "privacy", version: brand.policyVersions.privacy },
     ]);
-    await tx.insert(verifications).values({ userId: u.id, type: "email", status: "pending", provider: "email_link" });
-    if (input.kind === "worker") {
+    await tx.insert(verifications).values({ userId: u.id, type: "email", status: invite ? "verified" : "pending", provider: invite ? "invitation_link" : "email_link", ...(invite ? { decidedAt: new Date() } : {}) });
+    if (invite) {
+      const { businessInvitations, businessMembers: bm } = await import("../db/schema");
+      const claimed = await tx.update(businessInvitations).set({ acceptedAt: new Date() }).where(and(eq(businessInvitations.id, invite.id), isNull(businessInvitations.acceptedAt), isNull(businessInvitations.revokedAt))).returning({ id: businessInvitations.id });
+      if (!claimed.length) throw new ServiceError("This invitation was just used or withdrawn", "conflict");
+      await tx.insert(bm).values({ businessId: invite.businessId, userId: u.id, role: invite.role });
+      await audit(u.id, "team.joined", "business", invite.businessId, { role: invite.role, viaRegistration: true }, tx);
+    } else if (input.kind === "worker") {
       await tx.insert(workerProfiles).values({ userId: u.id, city: input.city || null, postalPrefix: input.postalPrefix || null });
     } else {
       const [b] = await tx.insert(businesses).values({
@@ -64,6 +79,7 @@ export async function registerUser(raw: unknown) {
     return u;
   });
 
+  if (invite) return user; // email already verified through the invitation link
   const token = await issueToken(user.id, "email_verification", 48);
   await sendEmail({ to: user.email, template: "email_verification", subject: `Verify your email for ${brand.name}`, body: `Hi ${user.fullName}, confirm your email address to finish setting up your account.`, path: `/verify-email?token=${token}` });
   return user;

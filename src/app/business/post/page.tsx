@@ -91,7 +91,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
             <Field label="End date" htmlFor="ed"><Input id="ed" name="endDate" type="date" defaultValue={o?.endDate ?? ""} /></Field>
             <Field label="Apply by" htmlFor="ad"><Input id="ad" name="applicationDeadline" type="date" defaultValue={o?.applicationDeadline ?? ""} /></Field>
           </div>
-          {type === "recurring" && <Field label="Recurrence" htmlFor="rn" hint="e.g. Every Tuesday for 3 months, renewable"><Input id="rn" name="recurrenceNote" defaultValue={o?.recurrenceNote ?? ""} /></Field>}
+          {type === "recurring" && <>
+            <Field label="Recurrence" htmlFor="rn" hint="e.g. Every Tuesday for 3 months, renewable"><Input id="rn" name="recurrenceNote" defaultValue={o?.recurrenceNote ?? ""} /></Field>
+            <Field label="When the term ends" htmlFor="psw" hint="You will get a reminder before the end date either way. Renewals always need the worker’s agreement."><Select id="psw" name="preferSameWorker" defaultValue={o?.preferSameWorker === false ? "no" : "yes"}><option value="yes">I’d like to renew with the same worker where possible</option><option value="no">I may look for someone different</option></Select></Field></>}
           {(needsSchedule || type === "micro_task" || type === "local_service") && <fieldset><legend className="mb-2 text-sm font-semibold">{needsSchedule ? "Scheduled days and hours (required)" : "Preferred days and hours (optional) — used to match workers who are actually available"}</legend>
             <div className="space-y-2">{DAYS.map((d, wd) => { const w = mine?.schedule.find((x) => x.weekday === wd); return <div key={d} className="grid items-center gap-2 sm:grid-cols-[110px_1fr_1fr]"><span className="text-sm font-semibold">{d}</span><Input aria-label={`${d} start`} type="time" name={`s_${wd}_0_start`} defaultValue={t(w?.startMinute)} /><Input aria-label={`${d} end`} type="time" name={`s_${wd}_0_end`} defaultValue={t(w?.endMinute === 1440 ? 0 : w?.endMinute)} /></div>; })}</div></fieldset>}
         </Card>

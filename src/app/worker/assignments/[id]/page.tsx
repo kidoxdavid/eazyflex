@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/server/auth/session";
 import { getAssignment } from "@/server/services/assignments";
 import { AssignmentView } from "@/components/assignment-view";
+import { getRecurringView } from "@/server/services/recurring";
 export const dynamic = "force-dynamic";
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export default async function Page({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
@@ -10,5 +11,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const u = await requireUser("worker");
   const d = await getAssignment(u.id, id).catch(() => null);
   if (!d || d.side !== "worker") notFound();
-  return <AssignmentView d={d} userId={u.id} sp={sp} />;
+  const rec = await getRecurringView(u.id, id).catch(() => null);
+  const canManage = true; // workers act on their own sessions; the panel decides per side
+  return <AssignmentView d={d} userId={u.id} sp={sp} rec={rec} canManage={canManage} />;
 }

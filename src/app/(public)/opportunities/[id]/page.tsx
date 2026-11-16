@@ -70,7 +70,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         <aside className="space-y-4 lg:sticky lg:top-28 lg:self-start">
           <Card>
             <dl className="space-y-2 text-sm">
-              {[["Location", where], ["Duration", duration(o)], ["Workers needed", String(o.workersNeeded)], ["Experience", o.experienceLevel], ["Start", o.startDate ?? "Flexible"], ["End", o.endDate ?? "—"], ["Apply by", o.applicationDeadline ?? "Open until filled"], ...(o.recurring ? [["Recurring", o.recurrenceNote ?? "Yes"]] : [])].map(([k, v]) => <div key={k} className="flex justify-between gap-3"><dt className="text-muted">{k}</dt><dd className="text-right font-semibold">{v}</dd></div>)}
+              {[["Location", where], ["Duration", duration(o)], ["Workers needed", String(o.workersNeeded)], ["Experience", o.experienceLevel], ["Start", o.startDate ?? "Flexible"], ["End", o.endDate ?? "—"], ["Apply by", o.applicationDeadline ?? "Open until filled"], ...(o.recurring ? [["Recurring", (o.recurrenceNote ?? "Yes") + (o.preferSameWorker ? " · renewal with the same worker preferred" : "")]] : [])].map(([k, v]) => <div key={k} className="flex justify-between gap-3"><dt className="text-muted">{k}</dt><dd className="text-right font-semibold">{v}</dd></div>)}
             </dl>
           </Card>
 

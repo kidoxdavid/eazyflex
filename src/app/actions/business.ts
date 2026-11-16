@@ -24,7 +24,7 @@ export async function saveOpportunityAction(f: FormData) {
     categoryId: str(f, "categoryId"), arrangement: str(f, "arrangement"), serviceAreaId: str(f, "serviceAreaId") ?? "", locationNote: str(f, "locationNote"),
     payType: str(f, "payType"), payMin: str(f, "payMin"), payMax: str(f, "payMax") || str(f, "payMin"), estimatedHours: str(f, "estimatedHours") ?? "", hoursPerWeek: str(f, "hoursPerWeek") ?? "",
     startDate: str(f, "startDate") ?? "", endDate: str(f, "endDate") ?? "", applicationDeadline: str(f, "applicationDeadline") ?? "",
-    workersNeeded: str(f, "workersNeeded") || 1, experienceLevel: str(f, "experienceLevel") || "entry", recurrenceNote: str(f, "recurrenceNote"),
+    workersNeeded: str(f, "workersNeeded") || 1, experienceLevel: str(f, "experienceLevel") || "entry", recurrenceNote: str(f, "recurrenceNote"), preferSameWorker: str(f, "preferSameWorker") !== "no",
     deliverables: str(f, "deliverables"), equipment: str(f, "equipment"), selectionProcess: str(f, "selectionProcess"), cancellationTerms: str(f, "cancellationTerms"),
     qualificationsRequired: str(f, "qualificationsRequired"), skillIds: strs(f, "skillIds"), mandatorySkillIds: strs(f, "mandatorySkillIds"), schedule: parseWindows(f, "s"),
     questions: [0, 1, 2, 3, 4].map((n) => ({ prompt: (str(f, `q_${n}`) ?? "").trim(), required: f.get(`qreq_${n}`) === "on" })).filter((q) => q.prompt),

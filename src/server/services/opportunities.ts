@@ -6,6 +6,7 @@ import {
 } from "../db/schema";
 import { audit } from "../audit";
 import { ServiceError } from "./identity";
+import { canBiz, type BizPerm } from "../business-rbac";
 
 export const ENGAGEMENT_LABELS: Record<string, string> = {
   micro_task: "Micro-task", fixed_project: "Fixed project", flexible_shift: "Flexible shift",
@@ -39,6 +40,7 @@ export const opportunitySchema = z.object({
   workersNeeded: z.coerce.number().int().min(1).max(100).default(1),
   experienceLevel: z.enum(["entry", "intermediate", "experienced", "expert"]).default("entry"),
   recurrenceNote: z.string().trim().max(300).optional(),
+  preferSameWorker: z.boolean().default(true),
   deliverables: z.string().trim().max(3000).optional(),
   equipment: z.string().trim().max(500).optional(),
   selectionProcess: z.string().trim().max(1000).optional(),
@@ -69,6 +71,12 @@ export function validateOpportunityRules(i: OpportunityInput) {
   if (errs.length) throw new ServiceError(errs.join(". "));
 }
 
+export async function assertBusinessPermission(userId: string, businessId: string, perm: BizPerm) {
+  const m = await assertBusinessMember(userId, businessId);
+  if (!canBiz(m.role, perm)) throw new ServiceError(`Your role (${m.role}) can’t do this. Ask an owner${perm === "team.manage" || perm === "verification.submit" ? "" : " or manager"}.`, "forbidden");
+  return m;
+}
+
 export async function assertBusinessMember(userId: string, businessId: string) {
   const [m] = await db.select().from(businessMembers).where(and(eq(businessMembers.userId, userId), eq(businessMembers.businessId, businessId))).limit(1);
   if (!m) throw new ServiceError("You do not have access to this business", "forbidden");
@@ -81,7 +89,7 @@ export async function getModerationEnabled() {
 }
 
 export async function saveOpportunity(userId: string, businessId: string, raw: unknown, opts: { id?: string; publish: boolean }) {
-  await assertBusinessMember(userId, businessId);
+  await assertBusinessPermission(userId, businessId, "opportunity.write");
   const [biz] = await db.select().from(businesses).where(eq(businesses.id, businessId)).limit(1);
   if (!biz || biz.status !== "active") throw new ServiceError("This business account is not active", "forbidden");
   const i = opportunitySchema.parse(raw);
@@ -105,7 +113,7 @@ export async function saveOpportunity(userId: string, businessId: string, raw: u
       estimatedHours: i.estimatedHours ?? null, hoursPerWeek: i.hoursPerWeek ?? null,
       startDate: i.startDate ?? null, endDate: i.endDate ?? null, applicationDeadline: i.applicationDeadline ?? null,
       workersNeeded: i.workersNeeded, experienceLevel: i.experienceLevel,
-      recurring: i.engagementType === "recurring", recurrenceNote: i.recurrenceNote ?? null,
+      recurring: i.engagementType === "recurring", recurrenceNote: i.recurrenceNote ?? null, preferSameWorker: i.preferSameWorker,
       deliverables: i.deliverables ?? null, equipment: i.equipment ?? null, selectionProcess: i.selectionProcess ?? null,
       cancellationTerms: i.cancellationTerms ?? null, qualificationsRequired: i.qualificationsRequired ?? null,
       status, publishedAt: status === "published" ? new Date() : null, updatedAt: new Date(),
@@ -200,7 +208,7 @@ export async function getOpportunityDetail(id: string) {
 }
 
 export async function setOpportunityStatus(userId: string, businessId: string, id: string, status: "paused" | "closed" | "published") {
-  await assertBusinessMember(userId, businessId);
+  await assertBusinessPermission(userId, businessId, "opportunity.write");
   const [o] = await db.select().from(opportunities).where(and(eq(opportunities.id, id), eq(opportunities.businessId, businessId))).limit(1);
   if (!o) throw new ServiceError("Opportunity not found", "not_found");
   const allowed: Record<string, string[]> = { published: ["paused", "closed"], paused: ["published", "closed"], filled: ["closed"] };

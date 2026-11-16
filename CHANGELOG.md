@@ -1,5 +1,10 @@
 # Changelog
-## Unreleased — Phase 4 (non-payment pieces)
+## Unreleased — Team members and recurring renewals
+- Business team: invitations, owner/manager/member roles enforced on all write paths, role changes, removal. Recurring assignments: dated sessions, logging/confirmation/missed/cancel, term close-out, worker-accepted renewal offers, reminder/expiry job. Migration `0005_team_and_renewals`.
+- Fixed a Phase 1 bug: the business overview always showed 0 applicants per opportunity (a correlated subquery bound to the wrong table); added regression tests.
+- 178 Vitest tests + 24-step Playwright journey.
+
+## Phase 4 (non-payment pieces)
 - Work-sharing / coverage engine: suggestions, proposals, explicit worker confirmation, gap/overlap/clash detection, weekly chart, handover notes. Saved searches with alert digests. Migration `0004_phase4_coverage`.
 - 134 Vitest tests + 22-step Playwright journey.
 

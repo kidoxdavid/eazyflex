@@ -5,7 +5,7 @@ import { audit } from "../audit";
 import { notify } from "../notify";
 import { rateLimit } from "../rate-limit";
 import { ServiceError } from "./identity";
-import { assertBusinessMember } from "./opportunities";
+import { assertBusinessPermission } from "./opportunities";
 import { getBusinessForUser } from "./business";
 import { privateName } from "./matching";
 
@@ -18,6 +18,7 @@ async function assertDiscoverable(workerId: string) {
 export async function shortlistWorker(userId: string, workerId: string, note?: string) {
   const m = await getBusinessForUser(userId);
   if (!m) throw new ServiceError("No business account", "forbidden");
+  await assertBusinessPermission(userId, m.b.id, "hiring.decide");
   await assertDiscoverable(workerId);
   await db.insert(talentShortlist).values({ businessId: m.b.id, workerId, note: note?.slice(0, 500) ?? null, createdBy: userId }).onConflictDoNothing();
   await audit(userId, "shortlist.added", "user", workerId);
@@ -25,6 +26,7 @@ export async function shortlistWorker(userId: string, workerId: string, note?: s
 export async function removeShortlisted(userId: string, workerId: string) {
   const m = await getBusinessForUser(userId);
   if (!m) throw new ServiceError("No business account", "forbidden");
+  await assertBusinessPermission(userId, m.b.id, "hiring.decide");
   await db.delete(talentShortlist).where(and(eq(talentShortlist.businessId, m.b.id), eq(talentShortlist.workerId, workerId)));
 }
 export async function listShortlist(userId: string) {
@@ -39,7 +41,7 @@ export async function listShortlist(userId: string) {
 export async function inviteWorker(userId: string, opportunityId: string, workerId: string, message?: string) {
   const m = await getBusinessForUser(userId);
   if (!m) throw new ServiceError("No business account", "forbidden");
-  await assertBusinessMember(userId, m.b.id);
+  await assertBusinessPermission(userId, m.b.id, "hiring.decide");
   if (!(await rateLimit(`invite:${m.b.id}`, 20, 86400))) throw new ServiceError("Daily invitation limit reached", "rate_limited");
   const [o] = await db.select().from(opportunities).where(and(eq(opportunities.id, opportunityId), eq(opportunities.businessId, m.b.id))).limit(1);
   if (!o) throw new ServiceError("Opportunity not found", "not_found");

@@ -5,11 +5,17 @@ import { assignmentHistory, assignmentSubmissions, assignments, businessMembers,
 import { audit } from "../audit";
 import { notify } from "../notify";
 import { ServiceError } from "./identity";
+import { assertBusinessPermission } from "./opportunities";
 import { attachmentsFor, saveUploads, validateUpload, type Upload } from "./files";
 import { privateName } from "./matching";
 
 type Status = typeof assignments.$inferSelect["status"];
 const OPEN: Status[] = ["confirmed", "in_progress", "submitted", "changes_requested"];
+
+async function isRecurringAssignment(opportunityId: string) {
+  const [o] = await db.select({ r: opportunities.recurring, n: sql<number>`(select count(*)::int from opportunity_schedules s where s.opportunity_id = "opportunities"."id")` }).from(opportunities).where(eq(opportunities.id, opportunityId));
+  return !!o && o.r && o.n > 0;
+}
 
 async function load(userId: string, id: string) {
   const [a] = await db.select({ a: assignments, title: opportunities.title }).from(assignments).innerJoin(opportunities, eq(opportunities.id, assignments.opportunityId)).where(eq(assignments.id, id)).limit(1);
@@ -20,7 +26,7 @@ async function load(userId: string, id: string) {
   throw new ServiceError("Assignment not found", "not_found"); // outsiders cannot tell it exists
 }
 
-async function move(a: typeof assignments.$inferSelect, to: Status, actorId: string, note?: string, extra: Partial<typeof assignments.$inferInsert> = {}) {
+export async function moveAssignment(a: typeof assignments.$inferSelect, to: Status, actorId: string, note?: string, extra: Partial<typeof assignments.$inferInsert> = {}) {
   await db.transaction(async (tx) => {
     const [fresh] = await tx.select({ s: assignments.status }).from(assignments).where(eq(assignments.id, a.id)).for("update");
     if (fresh.s !== a.status) throw new ServiceError("This assignment was just updated. Refresh and try again.", "conflict");
@@ -46,22 +52,23 @@ export async function workerAction(userId: string, id: string, action: "start" |
   const a = x.a;
   if (action === "start") {
     if (a.status !== "confirmed") throw new ServiceError("This assignment has already started");
-    await move(a, "in_progress", userId);
+    await moveAssignment(a, "in_progress", userId);
     await notifyBusiness(a.businessId, "Work started", `Work has started on “${x.title}”.`, `/business/assignments/${id}`);
   } else if (action === "submit") {
     if (!["confirmed", "in_progress", "changes_requested"].includes(a.status)) throw new ServiceError("You can’t submit work in the current status");
+    if (await isRecurringAssignment(a.opportunityId)) throw new ServiceError("This is a recurring assignment: log each session on the assignment page instead of submitting one deliverable.");
     const i = submitSchema.parse(input);
     if (a.payType === "hourly" && !i.hoursWorked) throw new ServiceError("Enter the hours you worked for this hourly assignment");
     uploads.forEach(validateUpload);
     const [sub] = await db.insert(assignmentSubmissions).values({ assignmentId: id, note: i.note, hoursWorked: i.hoursWorked?.toString() ?? null, link: i.link ?? null }).returning({ id: assignmentSubmissions.id });
     await saveUploads(userId, uploads, { submissionId: sub.id }).catch(async (e) => { await db.delete(assignmentSubmissions).where(eq(assignmentSubmissions.id, sub.id)); throw e; });
-    await move(a, "submitted", userId);
+    await moveAssignment(a, "submitted", userId);
     await notifyBusiness(a.businessId, "Work submitted", `Work was submitted on “${x.title}” and needs your review.`, `/business/assignments/${id}`);
   } else {
     if (!OPEN.includes(a.status) || a.status === "submitted") throw new ServiceError("This assignment can’t be cancelled now — contact the business or report a problem");
     const reason = String(input.reason ?? "").trim();
     if (reason.length < 5) throw new ServiceError("Give a short reason for cancelling");
-    await move(a, "cancelled", userId, reason, { cancelReason: reason, cancelledBy: userId });
+    await moveAssignment(a, "cancelled", userId, reason, { cancelReason: reason, cancelledBy: userId });
     await notifyBusiness(a.businessId, "Assignment cancelled", `The worker cancelled “${x.title}”.`, `/business/assignments/${id}`);
   }
 }
@@ -69,11 +76,12 @@ export async function workerAction(userId: string, id: string, action: "start" |
 export async function businessAction(userId: string, id: string, action: "approve" | "request_changes" | "cancel", note = "") {
   const x = await load(userId, id);
   if (x.side !== "business") throw new ServiceError("Assignment not found", "not_found");
+  await assertBusinessPermission(userId, x.a.businessId, "hiring.decide");
   const a = x.a;
   if (action === "cancel") {
     if (!OPEN.includes(a.status)) throw new ServiceError("This assignment is already closed");
     if (note.trim().length < 5) throw new ServiceError("Give a short reason for cancelling");
-    await move(a, "cancelled", userId, note, { cancelReason: note.trim(), cancelledBy: userId });
+    await moveAssignment(a, "cancelled", userId, note, { cancelReason: note.trim(), cancelledBy: userId });
     await notify(a.workerId, "assignment", "Assignment cancelled", `“${x.title}” was cancelled by the business.`, `/worker/assignments/${id}`);
     return;
   }
@@ -82,11 +90,11 @@ export async function businessAction(userId: string, id: string, action: "approv
   if (action === "request_changes") {
     if (note.trim().length < 5) throw new ServiceError("Say what needs to change");
     if (sub) await db.update(assignmentSubmissions).set({ outcome: "changes_requested", reviewerNote: note, decidedAt: new Date() }).where(eq(assignmentSubmissions.id, sub.id));
-    await move(a, "changes_requested", userId, note);
+    await moveAssignment(a, "changes_requested", userId, note);
     await notify(a.workerId, "assignment", "Changes requested", `The business asked for changes on “${x.title}”.`, `/worker/assignments/${id}`);
   } else {
     if (sub) await db.update(assignmentSubmissions).set({ outcome: "approved", reviewerNote: note || null, decidedAt: new Date() }).where(eq(assignmentSubmissions.id, sub.id));
-    await move(a, "completed", userId, note || undefined, { completedAt: new Date() });
+    await moveAssignment(a, "completed", userId, note || undefined, { completedAt: new Date() });
     await notify(a.workerId, "assignment", "Work approved", `“${x.title}” was approved. You can now leave a review. (Payment is not active in this release.)`, `/worker/assignments/${id}`);
   }
 }
@@ -123,6 +131,7 @@ export const REVIEW_REVEAL_DAYS = 14;
 
 export async function submitReview(userId: string, assignmentId: string, raw: unknown) {
   const x = await load(userId, assignmentId);
+  if (x.side === "business") await assertBusinessPermission(userId, x.a.businessId, "hiring.decide");
   if (x.a.status !== "completed") throw new ServiceError("Reviews open once the assignment is completed");
   const i = reviewSchema.parse(raw);
   let revieweeId = x.a.workerId;
