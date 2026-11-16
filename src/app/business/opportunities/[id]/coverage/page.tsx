@@ -25,7 +25,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const nameOf = new Map(v.slices.map((s) => [s.workerId, s.workerName]));
   return (
     <>
-      <Link href={`/business/opportunities/${id}`} className="text-sm font-medium text-primary underline">← {o.title}</Link>
+      <Link href={`/business/opportunities/${id}`} className="on-dark text-sm font-semibold text-white underline">← {o.title}</Link>
       <PageHeader title="Shared coverage" subtitle="Split the required hours between several people. Nobody is booked until they confirm their own slice." />
       <Flash error={sp.error} ok={sp.ok} />
       <div className="grid gap-4 sm:grid-cols-4"><Stat label="Required per week" value={hrs(r.requiredMinutes)} /><Stat label="Confirmed" value={`${r.percentConfirmed}%`} hint={hrs(r.confirmedMinutes)} /><Stat label="Planned (incl. proposed)" value={hrs(r.plannedMinutes)} /><Stat label="Uncovered" value={hrs(r.requiredMinutes - r.plannedMinutes)} hint={r.complete ? "Fully confirmed" : undefined} /></div>
