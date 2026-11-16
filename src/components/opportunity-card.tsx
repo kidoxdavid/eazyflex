@@ -20,15 +20,16 @@ export function OpportunityCard({ item, saved, back, showSave }: { item: Item; s
   const { o } = item;
   const posted = o.publishedAt ? Math.max(0, Math.floor((Date.now() - o.publishedAt.getTime()) / 86400000)) : null;
   return (
-    <Card className="flex flex-col gap-3 transition-shadow hover:shadow-md">
+    <Card className="flex flex-col gap-3 transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-[0_30px_60px_-30px_rgba(20,32,27,.45)]">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-semibold leading-snug"><Link href={`/opportunities/${o.id}`} className="hover:underline">{o.title}</Link></h3>
+        <span aria-hidden="true" className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#a3f07a]/70 to-[#6d5bff]/50 text-sm font-extrabold text-primary">{item.businessName.slice(0, 1).toUpperCase()}</span>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-lg font-bold leading-snug"><Link href={`/opportunities/${o.id}`} className="hover:underline">{o.title}</Link></h3>
           <p className="mt-0.5 text-sm text-muted">{item.businessName}{item.businessVerified === "verified" && <span className="ml-2 align-middle"><Badge tone="success">✓ Verified business</Badge></span>}</p>
         </div>
         <div className="flex flex-col items-end gap-1">{o.featured && <Badge tone="warning">Featured</Badge>}{o.isDemo && <Badge tone="outline">Demo</Badge>}</div>
       </div>
-      <p className="font-display text-xl font-semibold text-primary">{formatPay(o)}</p>
+      <p className="font-display text-2xl font-extrabold tracking-tight text-primary">{formatPay(o)}</p>
       <div className="flex flex-wrap gap-1.5 text-xs">
         <Badge tone="info">{ENGAGEMENT_LABELS[o.engagementType]}</Badge><Badge>{where({ o, areaName: item.areaName })}</Badge>
         <Badge tone="outline">{duration(o)}</Badge>{o.recurring && <Badge tone="outline">↻ Recurring</Badge>}
@@ -38,7 +39,7 @@ export function OpportunityCard({ item, saved, back, showSave }: { item: Item; s
         <span className="text-xs text-muted">{posted === null ? "" : posted === 0 ? "Posted today" : `Posted ${posted} day${posted > 1 ? "s" : ""} ago`}</span>
         <div className="flex items-center gap-2">
           {showSave && <form action={toggleSaveAction}><input type="hidden" name="opportunityId" value={o.id} /><input type="hidden" name="back" value={back ?? "/worker/saved"} /><button className="min-h-11 rounded-xl px-3 text-sm font-medium text-primary hover:bg-secondary/60" aria-pressed={saved}>{saved ? "★ Saved" : "☆ Save"}</button></form>}
-          <Link href={`/opportunities/${o.id}`} className="inline-flex min-h-11 items-center rounded-xl bg-primary px-4 text-sm font-semibold text-white hover:bg-[#0f2e25]">View &amp; apply</Link>
+          <Link href={`/opportunities/${o.id}`} className="inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-bold text-white transition-colors hover:bg-[#16402f]">View &amp; apply</Link>
         </div>
       </div>
     </Card>

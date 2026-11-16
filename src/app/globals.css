@@ -1,26 +1,29 @@
 @import "tailwindcss";
-@import "@fontsource-variable/fraunces";
-@import "@fontsource-variable/figtree";
+@import "@fontsource-variable/manrope";
 
 /* Semantic design tokens. Brand palette lives here only; components use semantic names. */
 :root {
-  --primary: #153d32;        /* deep forest green */
+  --primary: #0f2b21;        /* deep forest */
   --primary-fg: #ffffff;
-  --secondary: #dce9dd;      /* soft sage */
-  --secondary-fg: #153d32;
-  --accent: #e6a66a;         /* warm amber */
-  --accent-fg: #252b28;
-  --background: #f5f1e8;     /* warm ivory */
+  --secondary: #e3efd9;      /* sage mist */
+  --secondary-fg: #0f2b21;
+  --accent: #a3f07a;         /* lime: "you're free" / fit signal, always with dark text */
+  --accent-fg: #0f2b21;
+  --background: #fbf7ef;     /* warm cream */
   --surface: #ffffff;
-  --border: #ddd8cb;
-  --text: #252b28;           /* charcoal */
-  --muted: #56605a;          /* darkened from the brief's #78817B: >= 5.2:1 on white, ivory and sage backgrounds (WCAG AA) */
-  --success: #1f7a4d;
-  --warning: #9a5b00;
+  --border: #e8e0d0;
+  --text: #14201b;
+  --muted: #55605a;          /* >= 6:1 on cream/white (WCAG AA) */
+  --success: #1e7a3a;
+  --warning: #8a5200;
   --error: #b3261e;
   --info: #1f5f8b;
   --focus: #1f5f8b;
-  --radius: 0.75rem;
+  --radius: 1.25rem;
+  --night: #07090d;
+  --dusk-1: #0f2a22;
+  --dusk-2: #2d6a52;
+  --dusk-3: #cfe5d2;
 }
 
 @theme inline {
@@ -39,13 +42,13 @@
   --color-warning: var(--warning);
   --color-error: var(--error);
   --color-info: var(--info);
-  --font-display: "Fraunces Variable", Georgia, serif;
-  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
   --radius-card: var(--radius);
 }
 
 body { background: var(--background); color: var(--text); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
-h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.01em; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.03em; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
 /* Chromium drops :focus-visible when Tab moves between the hour/minute/AM-PM segments of a time input; keep our ring on throughout. */
 input[type="time"]:focus-within, input[type="date"]:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
@@ -53,3 +56,16 @@ a { text-underline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 .skip-link { position: absolute; left: -9999px; top: 0; background: var(--primary); color: #fff; padding: .75rem 1rem; z-index: 100; }
 .skip-link:focus { left: 0; }
+
+/* Dusk: one continuous surface from night, through forest and sage mist, to warm cream. Text sits on the zone it contrasts with. */
+.dusk { position: relative; isolation: isolate; color: #fff; background:
+  radial-gradient(60rem 28rem at 8% -10%, rgba(109,91,255,.30), transparent 65%),
+  radial-gradient(50rem 26rem at 95% 10%, rgba(163,240,122,.16), transparent 65%),
+  var(--night); }
+.dusk::after { content: ""; position: absolute; z-index: -1; inset: auto 0 0 0; height: 12rem; pointer-events: none;
+  background: linear-gradient(180deg, transparent, var(--dusk-1) 28%, var(--dusk-2) 62%, var(--dusk-3) 88%, var(--background)); }
+.band { background: linear-gradient(180deg, var(--night) 0, var(--dusk-1) 9rem, var(--dusk-2) 12.5rem, var(--dusk-3) 15.5rem, var(--background) 18rem); }
+.glass-dark { background: linear-gradient(160deg, rgba(255,255,255,.10), rgba(255,255,255,.03)); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(14px); }
+.on-dark :focus-visible { outline-color: var(--accent); }
+@keyframes ring-draw { from { stroke-dasharray: 0 138.2; } }
+.match-ring circle:nth-child(2) { animation: ring-draw .9s cubic-bezier(.2,.8,.2,1) both; }

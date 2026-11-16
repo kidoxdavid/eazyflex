@@ -5,7 +5,7 @@ import { getWorkerBundle, profileCompletion } from "@/server/services/worker";
 import { recommendForWorker } from "@/server/services/matching";
 import { listWorkerApplications } from "@/server/services/applications";
 import { searchOpportunities, formatPay } from "@/server/services/opportunities";
-import { Badge, Card, EmptyState, Flash, LinkButton, PageHeader, Stat } from "@/components/ui";
+import { Badge, Card, EmptyState, Flash, LinkButton, MatchRing, PageHeader, Stat } from "@/components/ui";
 import { db } from "@/server/db/client";
 import { notifications } from "@/server/db/schema";
 import { desc, eq } from "drizzle-orm";
@@ -51,7 +51,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ o
       </div>
       <h2 className="mb-3 mt-8 text-xl font-semibold">Recommended for you</h2>
       {recs.length === 0 ? <EmptyState title="No strong matches right now" body="Recommendations appear when an open opportunity fits your skills and real availability. Add skills or availability to see more." action={<LinkButton href="/worker/availability" variant="outline">Review availability</LinkButton>} />
-        : <div className="space-y-3">{recs.map((r) => { const o = recOpps.find((x) => x.id === r.id)!; return <Card key={r.id}><div className="flex flex-wrap items-start justify-between gap-2"><div><Link href={`/opportunities/${o.id}`} className="font-semibold hover:underline">{o.title}</Link><p className="text-sm text-primary">{formatPay(o)}</p></div><Badge tone={r.result.tier === "strong" ? "success" : "info"}>{r.result.score}/100 · {r.result.tier}</Badge></div><p className="mt-2 text-sm text-muted">{r.result.explanation}</p></Card>; })}<Link href="/worker/recommended" className="text-sm font-semibold text-primary underline">See all recommendations</Link></div>}
+        : <div className="space-y-3">{recs.map((r) => { const o = recOpps.find((x) => x.id === r.id)!; return <Card key={r.id}><div className="flex flex-wrap items-start justify-between gap-2"><div><Link href={`/opportunities/${o.id}`} className="font-semibold hover:underline">{o.title}</Link><p className="text-sm text-primary">{formatPay(o)}</p></div><div className="flex items-center gap-2"><Badge tone={r.result.tier === "strong" ? "success" : "info"}>{r.result.tier}</Badge><MatchRing score={r.result.score} size={48} tone={r.result.tier === "strong" ? "good" : "look"} /></div></div><p className="mt-2 text-sm text-muted">{r.result.explanation}</p></Card>; })}<Link href="/worker/recommended" className="text-sm font-semibold text-primary underline">See all recommendations</Link></div>}
       <h2 className="mb-3 mt-8 text-xl font-semibold">Notifications</h2>
       {notes.length === 0 ? <p className="text-sm text-muted">Nothing yet.</p> : <ul className="space-y-2">{notes.map((n) => <li key={n.id} className="rounded-xl border border-border bg-surface p-3 text-sm"><strong>{n.title}</strong> — {n.body} {n.href && <Link className="underline" href={n.href}>View</Link>}</li>)}</ul>}
     </>

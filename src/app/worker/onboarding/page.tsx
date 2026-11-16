@@ -18,7 +18,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ s
   return (
     <div className="mx-auto max-w-2xl">
       {sp.welcome && <p className="mb-4 rounded-xl bg-secondary p-3 text-sm">Welcome! Your account is created. Let’s set up your profile — it takes a few minutes and you can edit everything later.</p>}
-      <ol className="mb-6 flex flex-wrap gap-2" aria-label="Progress">{STEPS.map((s, i) => <li key={s}><Link href={`/worker/onboarding?step=${i + 1}`} aria-current={step === i + 1 ? "step" : undefined} className={`inline-flex min-h-9 items-center rounded-full px-3 text-xs font-semibold ${step === i + 1 ? "bg-primary text-white" : "bg-secondary text-secondary-fg"}`}>{i + 1}. {s}</Link></li>)}</ol>
+      <ol className="mb-6 flex flex-wrap gap-2" aria-label="Progress">{STEPS.map((s, i) => <li key={s}><Link href={`/worker/onboarding?step=${i + 1}`} aria-current={step === i + 1 ? "step" : undefined} className={`inline-flex min-h-9 items-center rounded-full px-3 text-xs font-semibold ${step === i + 1 ? "bg-accent text-accent-fg" : "bg-white/90 text-secondary-fg"}`}>{i + 1}. {s}</Link></li>)}</ol>
       <Flash error={sp.error} ok={sp.ok} />
       <Card>
         <h1 className="mb-4 text-2xl font-semibold">{STEPS[step - 1]}</h1>

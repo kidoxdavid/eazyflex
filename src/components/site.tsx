@@ -6,38 +6,40 @@ import { logoutAction } from "@/app/actions/auth";
 
 export function Logo({ light }: { light?: boolean }) {
   return (
-    <Link href="/" className={`flex items-center gap-2 font-display text-xl font-semibold ${light ? "text-white" : "text-primary"}`} aria-label={`${brand.name} home`}>
-      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="13" fill="currentColor" opacity=".12" /><path d="M14 5v9l6 4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /><circle cx="14" cy="14" r="2" fill="#e6a66a" /></svg>
+    <Link href="/" className={`flex items-center gap-2 text-xl font-extrabold tracking-tight ${light ? "text-white" : "text-primary"}`} aria-label={`${brand.name} home`}>
+      <svg width="28" height="28" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15" fill="none" stroke={light ? "#a3f07a" : "currentColor"} strokeWidth="3" /><path d="M17 9v8.5l5 3" fill="none" stroke={light ? "#a3f07a" : "currentColor"} strokeWidth="3" strokeLinecap="round" /></svg>
       {brand.name}
     </Link>
   );
 }
 
+const navLink = "rounded-full px-3.5 py-2 text-sm font-semibold text-white/85 transition-colors hover:bg-white/10 hover:text-white";
+
 export async function SiteHeader() {
   const user = await getCurrentUser();
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-        <Logo />
-        <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
-          {brand.nav.map((n) => <Link key={n.href} href={n.href} className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-secondary/60">{n.label}</Link>)}
+    <header className="on-dark sticky top-3 z-40 mx-auto w-full max-w-6xl px-3">
+      <div className="glass-dark flex items-center justify-between gap-3 rounded-full py-2 pl-5 pr-2 shadow-[0_20px_50px_-24px_rgba(0,0,0,.7)]">
+        <Logo light />
+        <nav aria-label="Main" className="hidden items-center gap-0.5 lg:flex">
+          {brand.nav.map((n) => <Link key={n.href} href={n.href} className={navLink}>{n.label}</Link>)}
         </nav>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {user ? (
             <>
-              <LinkButton href={homeFor(user)} variant="secondary">Dashboard</LinkButton>
-              <form action={logoutAction}><button className="min-h-11 rounded-xl px-3 text-sm font-medium hover:bg-secondary/60">Sign out</button></form>
+              <LinkButton href={homeFor(user)} variant="accent">Dashboard</LinkButton>
+              <form action={logoutAction}><button className={`min-h-11 ${navLink}`}>Sign out</button></form>
             </>
           ) : (
             <>
-              <Link href="/sign-in" className="hidden min-h-11 items-center rounded-xl px-3 text-sm font-medium hover:bg-secondary/60 sm:inline-flex">Sign in</Link>
-              <LinkButton href="/register">Get started</LinkButton>
+              <Link href="/sign-in" className={`hidden min-h-11 items-center sm:inline-flex ${navLink}`}>Sign in</Link>
+              <LinkButton href="/register" variant="accent">Get started</LinkButton>
             </>
           )}
         </div>
       </div>
-      <nav aria-label="Main (mobile)" className="flex gap-1 overflow-x-auto border-t border-border px-3 py-1.5 lg:hidden">
-        {brand.nav.map((n) => <Link key={n.href} href={n.href} className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium hover:bg-secondary/60">{n.label}</Link>)}
+      <nav aria-label="Main (mobile)" className="glass-dark mt-2 flex gap-1 overflow-x-auto rounded-full px-2 py-1 lg:hidden">
+        {brand.nav.map((n) => <Link key={n.href} href={n.href} className={`whitespace-nowrap ${navLink}`}>{n.label}</Link>)}
       </nav>
     </header>
   );
@@ -45,10 +47,10 @@ export async function SiteHeader() {
 
 export function SiteFooter() {
   const col = (title: string, links: [string, string][]) => (
-    <div><h2 className="font-sans text-sm font-semibold text-accent">{title}</h2><ul className="mt-3 space-y-2 text-sm">{links.map(([l, h]) => <li key={h + l}><Link className="text-white/85 hover:text-white" href={h}>{l}</Link></li>)}</ul></div>
+    <div><h2 className="font-sans text-sm font-bold text-accent">{title}</h2><ul className="mt-3 space-y-2 text-sm">{links.map(([l, h]) => <li key={h + l}><Link className="text-white/85 hover:text-white" href={h}>{l}</Link></li>)}</ul></div>
   );
   return (
-    <footer className="mt-20 bg-primary text-white">
+    <footer className="on-dark mt-20 bg-gradient-to-b from-[#0f2a22] to-[#07090d] text-white">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-4">
         <div><Logo light /><p className="mt-3 max-w-xs text-sm text-white/80">{brand.tagline}</p><p className="mt-3 text-xs text-white/60">Launching in {brand.launchCity}, {brand.launchRegion}.</p></div>
         {col("For workers", [["Find work", "/find-work"], ["Browse opportunities", "/opportunities"], ["Create an account", "/register?type=worker"]])}
@@ -61,5 +63,13 @@ export function SiteFooter() {
 }
 
 export async function PublicShell({ children }: { children: React.ReactNode }) {
-  return <><SiteHeader /><main id="main" tabIndex={-1}>{children}</main><SiteFooter /></>;
+  // A dusk band sits behind the floating header on every public page; the home hero extends it.
+  return (
+    <div className="relative">
+      <div aria-hidden="true" className="band pointer-events-none absolute inset-x-0 top-0 -z-10 h-72" />
+      <SiteHeader />
+      <main id="main" tabIndex={-1}>{children}</main>
+      <SiteFooter />
+    </div>
+  );
 }
