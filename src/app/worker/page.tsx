@@ -29,7 +29,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ o
     <>
       <PageHeader title={`Welcome, ${user.fullName.split(" ")[0]}`} subtitle="Here is where things stand." action={<LinkButton href="/opportunities">Browse opportunities</LinkButton>} />
       <Flash error={sp.error} ok={sp.ok} />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Stat label="Profile completion" value={`${comp.pct}%`} />
         <Stat label="Pending applications" value={active.length} />
         <Stat label="Accepted offers" value={accepted.length} />

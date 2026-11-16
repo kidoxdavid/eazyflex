@@ -18,7 +18,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ o
       <PageHeader title={m.b.name} subtitle="Your hiring overview" action={<LinkButton href="/business/post">Post work</LinkButton>} />
       <Flash error={sp.error} ok={sp.ok} />
       {sp.welcome && <p className="mb-4 rounded-xl bg-secondary p-3 text-sm">Welcome! Complete your <Link className="underline" href="/business/profile">business profile</Link>, then post your first piece of work.</p>}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Stat label="Active opportunities" value={live} /><Stat label="Total applications" value={apps} />
         <Stat label="Verification" value={<span className="text-xl capitalize">{m.b.verificationStatus.replace("_", " ")}</span>} />
         <Stat label="Spending" value="—" hint="Payments are not active yet" />

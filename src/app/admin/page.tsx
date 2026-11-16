@@ -13,7 +13,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ e
       <PageHeader title="Platform dashboard" subtitle="Live counts from the database." />
       <Flash error={sp.error} />
       {s.demoUsers > 0 && <p className="mb-4"><Badge tone="warning">{s.demoUsers} demo accounts present (seeded development data)</Badge></p>}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Stat label="Registered workers" value={s.workers} hint={`${s.activeWorkers} signed in within 30 days`} />
         <Stat label="Businesses" value={s.bizTotal} hint={`${s.bizVerified} verified`} />
         <Stat label="Opportunities" value={s.opps} hint={`${s.oppsActive} live`} />

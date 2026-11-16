@@ -13,7 +13,7 @@ export function Logo({ light }: { light?: boolean }) {
   );
 }
 
-const navLink = "inline-flex min-h-11 items-center rounded-full px-3.5 py-2 text-sm font-semibold text-white/85 transition-colors hover:bg-white/10 hover:text-white";
+const navLink = "min-h-11 items-center whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-semibold text-white/85 transition-colors hover:bg-white/10 hover:text-white";
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
@@ -22,24 +22,24 @@ export async function SiteHeader() {
       <div className="glass-dark flex items-center justify-between gap-3 rounded-full py-2 pl-5 pr-2 shadow-[0_20px_50px_-24px_rgba(0,0,0,.7)]">
         <Logo light />
         <nav aria-label="Main" className="hidden items-center gap-0.5 lg:flex">
-          {brand.nav.map((n) => <Link key={n.href} href={n.href} className={navLink}>{n.label}</Link>)}
+          {brand.nav.map((n) => <Link key={n.href} href={n.href} className={`inline-flex ${navLink}`}>{n.label}</Link>)}
         </nav>
         <div className="flex items-center gap-1.5">
           {user ? (
             <>
               <LinkButton href={homeFor(user)} variant="accent">Dashboard</LinkButton>
-              <form action={logoutAction}><button className={navLink}>Sign out</button></form>
+              <form action={logoutAction}><button className={`inline-flex ${navLink}`}>Sign out</button></form>
             </>
           ) : (
             <>
               <Link href="/sign-in" className={`hidden sm:inline-flex ${navLink}`}>Sign in</Link>
-              <LinkButton href="/register" variant="accent">Get started</LinkButton>
+              <LinkButton href="/register" variant="accent" className="whitespace-nowrap">Get started</LinkButton>
             </>
           )}
         </div>
       </div>
-      <nav aria-label="Main (mobile)" className="glass-dark mt-2 flex gap-1 overflow-x-auto rounded-full px-2 py-1 lg:hidden">
-        {brand.nav.map((n) => <Link key={n.href} href={n.href} className={`whitespace-nowrap ${navLink}`}>{n.label}</Link>)}
+      <nav aria-label="Main (mobile)" className="mt-2 flex gap-1 overflow-x-auto rounded-full border border-white/15 bg-[#14382c] px-2 py-1 shadow-[0_16px_36px_-20px_rgba(0,0,0,.7)] lg:hidden">
+        {brand.nav.map((n) => <Link key={n.href} href={n.href} className={`inline-flex ${navLink}`}>{n.label}</Link>)}
       </nav>
     </header>
   );
