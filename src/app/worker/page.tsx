@@ -46,7 +46,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ o
           {b.profile?.availabilityPaused ? <p className="mt-2 text-sm"><Badge tone="warning">Paused</Badge> You are not being recommended to businesses.</p>
             : b.availability.length === 0 ? <p className="mt-2 text-sm text-muted">No weekly hours set. <Link className="underline" href="/worker/availability">Add availability</Link></p>
             : <ul className="mt-2 text-sm text-muted">{b.availability.sort((a, c) => a.weekday - c.weekday).map((a) => <li key={a.id}>{DAYS[a.weekday]} {hm(a.startMinute)}–{hm(a.endMinute)}</li>)}</ul>}
-          <Link className="mt-2 inline-block text-sm font-semibold text-primary underline" href="/worker/availability">Edit availability</Link>
+          <Link className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-primary underline" href="/worker/availability">Edit availability</Link>
         </Card>
       </div>
       <h2 className="mb-3 mt-8 text-xl font-semibold">Recommended for you</h2>

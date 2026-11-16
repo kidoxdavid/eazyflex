@@ -48,7 +48,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<SP>
             <label className="flex min-h-11 items-center gap-2 text-sm font-semibold"><input type="checkbox" name="recurring" value="1" defaultChecked={sp.recurring === "1"} className="size-5" /> Recurring only</label>
             <label className="block text-sm font-semibold">Sort by<Select name="sort" defaultValue={sp.sort ?? "newest"} className="mt-1 font-normal"><option value="newest">Newest</option><option value="pay">Highest pay</option><option value="relevance">Relevance (with search text)</option></Select></label>
             <Button type="submit" className="w-full">Apply filters</Button>
-            <Link href="/opportunities" className="block text-center text-sm underline">Clear all</Link>
+            <Link href="/opportunities" className="flex min-h-11 items-center justify-center text-sm underline">Clear all</Link>
           </Card>
         </form>
         <section aria-live="polite">

@@ -72,3 +72,7 @@ a { text-underline-offset: 3px; }
 .on-dark a.bg-primary, .on-dark button.bg-primary { background: var(--accent); color: var(--accent-fg); box-shadow: 0 14px 30px -14px rgba(163,240,122,.9); }
 @keyframes ring-draw { from { stroke-dasharray: 0 138.2; } }
 .match-ring circle:nth-child(2) { animation: ring-draw .9s cubic-bezier(.2,.8,.2,1) both; }
+
+/* Touch targets: native checkboxes/radios at 24px (WCAG 2.2 target size), taller disclosure rows. */
+input[type="checkbox"], input[type="radio"] { width: 1.5rem; height: 1.5rem; accent-color: var(--primary); flex-shrink: 0; }
+summary { padding-block: .5rem; }

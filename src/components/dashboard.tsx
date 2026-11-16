@@ -18,15 +18,15 @@ export async function DashboardShell({ nav, user, area, children }: { nav: NavIt
         </nav>
         <div className="hidden px-5 py-4 text-sm lg:block">
           <p className="font-bold">{user.fullName}</p>
-          <form action={logoutAction}><button className="mt-1 text-white/75 underline hover:text-white">Sign out</button></form>
+          <form action={logoutAction}><button className="mt-1 min-h-11 text-white/75 underline hover:text-white">Sign out</button></form>
         </div>
       </aside>
       <div className="relative overflow-x-clip">
         <div aria-hidden="true" className="band pointer-events-none absolute inset-x-0 top-0 h-80" />
         <div className="on-dark relative flex items-center justify-end gap-4 px-4 py-3 text-sm text-white/85">
-          <Link href="/" className="underline">Public site</Link>
+          <Link href="/" className="inline-flex min-h-11 items-center underline">Public site</Link>
           <span aria-live="polite">{n > 0 ? <strong>{n} unread notification{n > 1 ? "s" : ""}</strong> : "No new notifications"}</span>
-          <form action={logoutAction} className="lg:hidden"><button className="underline">Sign out</button></form>
+          <form action={logoutAction} className="lg:hidden"><button className="min-h-11 underline">Sign out</button></form>
         </div>
         {!user.emailVerifiedAt && <div role="status" className="relative mx-4 rounded-2xl bg-[#fff1d6] px-4 py-2 text-sm text-warning">Your email is not verified yet. Open the link we sent you to verify it — you cannot apply or be discoverable until then.</div>}
         <main id="main" tabIndex={-1} className="relative mx-auto max-w-5xl px-4 py-8">{children}</main>

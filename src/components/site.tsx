@@ -6,14 +6,14 @@ import { logoutAction } from "@/app/actions/auth";
 
 export function Logo({ light }: { light?: boolean }) {
   return (
-    <Link href="/" className={`flex items-center gap-2 text-xl font-extrabold tracking-tight ${light ? "text-white" : "text-primary"}`} aria-label={`${brand.name} home`}>
+    <Link href="/" className={`flex min-h-11 items-center gap-2 text-xl font-extrabold tracking-tight ${light ? "text-white" : "text-primary"}`} aria-label={`${brand.name} home`}>
       <svg width="28" height="28" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15" fill="none" stroke={light ? "#a3f07a" : "currentColor"} strokeWidth="3" /><path d="M17 9v8.5l5 3" fill="none" stroke={light ? "#a3f07a" : "currentColor"} strokeWidth="3" strokeLinecap="round" /></svg>
       {brand.name}
     </Link>
   );
 }
 
-const navLink = "rounded-full px-3.5 py-2 text-sm font-semibold text-white/85 transition-colors hover:bg-white/10 hover:text-white";
+const navLink = "inline-flex min-h-11 items-center rounded-full px-3.5 py-2 text-sm font-semibold text-white/85 transition-colors hover:bg-white/10 hover:text-white";
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
@@ -28,11 +28,11 @@ export async function SiteHeader() {
           {user ? (
             <>
               <LinkButton href={homeFor(user)} variant="accent">Dashboard</LinkButton>
-              <form action={logoutAction}><button className={`min-h-11 ${navLink}`}>Sign out</button></form>
+              <form action={logoutAction}><button className={navLink}>Sign out</button></form>
             </>
           ) : (
             <>
-              <Link href="/sign-in" className={`hidden min-h-11 items-center sm:inline-flex ${navLink}`}>Sign in</Link>
+              <Link href="/sign-in" className={`hidden sm:inline-flex ${navLink}`}>Sign in</Link>
               <LinkButton href="/register" variant="accent">Get started</LinkButton>
             </>
           )}
