@@ -1,4 +1,9 @@
 # Changelog
+## Unreleased — "Dusk" visual redesign
+- New look chosen from mockups: one continuous surface that moves from deep night through forest and sage mist to warm cream. Manrope replaces Fraunces + Figtree; deep forest, cream, lime ("you're free" / fit signal, always with dark text) and violet accents.
+- Floating glass navigation on public pages, dark sidebar with a dusk header band in the worker, business and admin areas, pill buttons, frosted cards, a match ring (`MatchRing`) next to every match explanation, and a redesigned home hero with an illustrative week.
+- Fixed while verifying: text colours that would have been dark on the dark band (primary buttons, public page headings).
+- Verification: 27/27 browser journey steps, keyboard checks, and axe 0 violations on 98 page views, against the production build. Dashboard layouts, copy and behaviour are unchanged. Screens not yet restyled beyond tokens: hours editor, messages and business console.
 ## Unreleased — Remaining pre-launch gaps
 - **Fixed a defect that broke every fresh clone and CI:** `.gitignore`'s bare `coverage` rule had silently excluded `src/server/coverage/`, `src/app/worker/coverage/` and `src/app/business/opportunities/[id]/coverage/` from git. Found by the first real GitHub CI run; the fixed commit passes all CI jobs.
 - Error monitoring (structured logs, scrubbing, Sentry-compatible reporter, `onRequestError`, request ids), `/api/health` and `/api/ready`.

@@ -66,7 +66,7 @@ export async function PublicShell({ children }: { children: React.ReactNode }) {
   // A dusk band sits behind the floating header on every public page; the home hero extends it.
   return (
     <div className="relative">
-      <div aria-hidden="true" className="band pointer-events-none absolute inset-x-0 top-0 -z-10 h-72" />
+      <div aria-hidden="true" className="band-sm pointer-events-none absolute inset-x-0 top-0 -z-10 h-32" />
       <SiteHeader />
       <main id="main" tabIndex={-1}>{children}</main>
       <SiteFooter />

@@ -65,7 +65,10 @@ a { text-underline-offset: 3px; }
 .dusk::after { content: ""; position: absolute; z-index: -1; inset: auto 0 0 0; height: 12rem; pointer-events: none;
   background: linear-gradient(180deg, transparent, var(--dusk-1) 28%, var(--dusk-2) 62%, var(--dusk-3) 88%, var(--background)); }
 .band { background: linear-gradient(180deg, var(--night) 0, var(--dusk-1) 9rem, var(--dusk-2) 12.5rem, var(--dusk-3) 15.5rem, var(--background) 18rem); }
+.band-sm { background: linear-gradient(180deg, var(--night) 0, var(--dusk-1) 3.5rem, var(--dusk-2) 5rem, var(--dusk-3) 6rem, var(--background) 7rem); }
 .glass-dark { background: linear-gradient(160deg, rgba(255,255,255,.10), rgba(255,255,255,.03)); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(14px); }
 .on-dark :focus-visible { outline-color: var(--accent); }
+/* Primary (dark) buttons would vanish on the dark half of the dusk surface; show them as lime there. */
+.on-dark a.bg-primary, .on-dark button.bg-primary { background: var(--accent); color: var(--accent-fg); box-shadow: 0 14px 30px -14px rgba(163,240,122,.9); }
 @keyframes ring-draw { from { stroke-dasharray: 0 138.2; } }
 .match-ring circle:nth-child(2) { animation: ring-draw .9s cubic-bezier(.2,.8,.2,1) both; }
