@@ -5,6 +5,6 @@ node_modules
 .env.*.local
 *.tsbuildinfo
 next-env.d.ts
-coverage
+/coverage
 .storage
 .storage-test
