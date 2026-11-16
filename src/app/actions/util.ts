@@ -47,3 +47,10 @@ export function parseWindows(f: FormData, prefix = "w") {
 /** Optional post-save destination for multi-step flows. Only same-site worker paths are honoured. */
 export const ret = (f: FormData, fallback: string) => { const v = str(f, "returnTo"); return v && /^\/worker\/[\w\-/?=&.]*$/.test(v) ? v : fallback; };
 export const failTo = (f: FormData, fallback: string) => { const v = str(f, "failTo"); return v && /^\/worker\/[\w\-/?=&.]*$/.test(v) ? v : fallback; };
+
+/** Reads uploaded files from a form. Empty file inputs (size 0, no name) are ignored. */
+export async function readUploads(f: FormData, field = "files") {
+  const out: { name: string; data: Buffer }[] = [];
+  for (const v of f.getAll(field)) if (typeof v !== "string" && v.size > 0) out.push({ name: v.name, data: Buffer.from(await v.arrayBuffer()) });
+  return out;
+}

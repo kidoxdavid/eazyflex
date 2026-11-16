@@ -5,15 +5,15 @@ export type AdminRole =
 export type Permission =
   | "dashboard.view" | "users.view" | "users.suspend" | "verification.decide"
   | "opportunities.moderate" | "catalog.manage" | "matching.configure"
-  | "finance.configure" | "audit.view" | "admins.manage";
+  | "finance.configure" | "audit.view" | "admins.manage" | "reports.review";
 
 const P: Record<AdminRole, Permission[]> = {
-  super_admin: ["dashboard.view", "users.view", "users.suspend", "verification.decide", "opportunities.moderate", "catalog.manage", "matching.configure", "finance.configure", "audit.view", "admins.manage"],
-  platform_admin: ["dashboard.view", "users.view", "users.suspend", "verification.decide", "opportunities.moderate", "catalog.manage", "matching.configure", "audit.view"],
+  super_admin: ["dashboard.view", "users.view", "users.suspend", "verification.decide", "opportunities.moderate", "catalog.manage", "matching.configure", "finance.configure", "audit.view", "admins.manage", "reports.review"],
+  platform_admin: ["dashboard.view", "users.view", "users.suspend", "verification.decide", "opportunities.moderate", "catalog.manage", "matching.configure", "audit.view", "reports.review"],
   verification_officer: ["dashboard.view", "users.view", "verification.decide"],
-  support_agent: ["dashboard.view", "users.view"],
+  support_agent: ["dashboard.view", "users.view", "reports.review"],
   finance_admin: ["dashboard.view", "finance.configure", "audit.view"],
-  content_moderator: ["dashboard.view", "opportunities.moderate", "catalog.manage"],
+  content_moderator: ["dashboard.view", "opportunities.moderate", "catalog.manage", "reports.review"],
   read_only_analyst: ["dashboard.view", "audit.view"],
 };
 

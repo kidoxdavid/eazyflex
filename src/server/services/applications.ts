@@ -1,8 +1,9 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db/client";
-import { applicationStatusHistory, applications, assignments, businesses, notifications, opportunities, users } from "../db/schema";
+import { applicationStatusHistory, applicationAnswers, applications, assignments, businesses, opportunities, opportunityQuestions, users } from "../db/schema";
 import { markInvitationAccepted } from "./relationships";
+import { notify } from "../notify";
 import { audit } from "../audit";
 import { ServiceError } from "./identity";
 import { assertBusinessMember } from "./opportunities";
@@ -30,11 +31,9 @@ export const applySchema = z.object({
   proposal: z.string().trim().min(30, "Tell the business why you are a good fit (at least 30 characters)").max(4000),
   proposedRate: z.coerce.number().positive().max(100000).optional().or(z.literal("")).transform((v) => (v === "" ? undefined : v)),
   availabilityNote: z.string().trim().max(1000).optional(),
+  answers: z.record(z.string().uuid(), z.string().trim().max(2000)).default({}),
 });
 
-async function notify(userId: string, type: string, title: string, body: string, href: string) {
-  await db.insert(notifications).values({ userId, type, title, body, href });
-}
 
 export async function applyToOpportunity(workerId: string, raw: unknown) {
   const i = applySchema.parse(raw);
@@ -44,6 +43,13 @@ export async function applyToOpportunity(workerId: string, raw: unknown) {
   const [o] = await db.select({ o: opportunities, b: businesses }).from(opportunities).innerJoin(businesses, eq(businesses.id, opportunities.businessId)).where(eq(opportunities.id, i.opportunityId)).limit(1);
   if (!o || o.o.status !== "published" || o.b.status !== "active") throw new ServiceError("This opportunity is not open for applications", "not_found");
   if (o.o.applicationDeadline && o.o.applicationDeadline < new Date().toISOString().slice(0, 10)) throw new ServiceError("The application deadline has passed");
+
+  // Screening questions: every required question must be answered; answers for unknown questions are rejected.
+  const questions = await db.select().from(opportunityQuestions).where(eq(opportunityQuestions.opportunityId, i.opportunityId));
+  const qids = new Set(questions.map((q) => q.id));
+  if (Object.keys(i.answers).some((k) => !qids.has(k))) throw new ServiceError("An answer does not belong to this opportunity");
+  const missing = questions.find((q) => q.required && !(i.answers[q.id] ?? "").trim());
+  if (missing) throw new ServiceError(`Please answer: “${missing.prompt}”`);
 
   // Informational snapshot only — it never blocks an application and is not shown as a decision.
   const match = await matchWorkerToOpportunity(workerId, i.opportunityId).catch(() => null);
@@ -56,6 +62,8 @@ export async function applyToOpportunity(workerId: string, raw: unknown) {
         matchScore: match?.eligible ? match.score : null, matchSnapshot: match ?? null,
       }).returning();
       await tx.insert(applicationStatusHistory).values({ applicationId: a.id, fromStatus: null, toStatus: "submitted", actorId: workerId });
+      const rows = Object.entries(i.answers).filter(([, v]) => v.trim()).map(([questionId, answer]) => ({ applicationId: a.id, questionId, answer }));
+      if (rows.length) await tx.insert(applicationAnswers).values(rows);
       await audit(workerId, "application.submitted", "application", a.id, { opportunityId: i.opportunityId }, tx);
       return a;
     }).then(async (a) => {
@@ -129,3 +137,9 @@ export async function applicationHistory(appId: string) {
   return db.select().from(applicationStatusHistory).where(eq(applicationStatusHistory.applicationId, appId)).orderBy(applicationStatusHistory.createdAt);
 }
 export const isTerminal = (s: Status) => TERMINAL.includes(s);
+
+export async function applicationAnswersFor(appIds: string[]) {
+  if (!appIds.length) return [];
+  return db.select({ applicationId: applicationAnswers.applicationId, prompt: opportunityQuestions.prompt, answer: applicationAnswers.answer, sort: opportunityQuestions.sortOrder })
+    .from(applicationAnswers).innerJoin(opportunityQuestions, eq(opportunityQuestions.id, applicationAnswers.questionId)).where(sql`${applicationAnswers.applicationId} in (${sql.join(appIds.map((x) => sql`${x}::uuid`), sql`, `)})`).orderBy(opportunityQuestions.sortOrder);
+}

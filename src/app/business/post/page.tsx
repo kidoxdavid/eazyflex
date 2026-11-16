@@ -103,6 +103,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
           <Field label="Cancellation terms (optional)" htmlFor="ct"><Textarea id="ct" name="cancellationTerms" rows={2} defaultValue={o?.cancellationTerms ?? ""} /></Field>
           <p className="rounded-xl bg-secondary/50 p-3 text-xs text-muted">You are responsible for the working arrangement you offer. Whether someone is an employee or independent contractor depends on the actual arrangement and applicable law, not on how it is listed here.</p>
         </Card>
+        <Card className="space-y-3"><h2 className="font-sans text-lg font-semibold">Screening questions (optional, up to 5)</h2>
+          <p className="text-xs text-muted">Applicants answer these when they apply. Avoid questions about age, family status, health, origin or other protected characteristics. Questions can’t be changed once someone has applied.</p>
+          {[0, 1, 2, 3, 4].map((n) => <div key={n} className="grid items-center gap-2 sm:grid-cols-[1fr_auto]"><Input name={`q_${n}`} aria-label={`Question ${n + 1}`} defaultValue={mine?.questions[n]?.prompt ?? ""} maxLength={300} placeholder={n === 0 ? "e.g. Which accounting software have you used?" : ""} /><label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name={`qreq_${n}`} defaultChecked={mine?.questions[n]?.required ?? true} className="size-4" />required</label></div>)}</Card>
         <div className="flex flex-wrap gap-3"><Button name="intent" value="publish" type="submit">Publish</Button><Button name="intent" value="draft" variant="outline" type="submit">Save draft</Button></div>
         <p className="text-xs text-muted">Sensitive categories, or all postings if moderation is enabled, go to a reviewer before they appear publicly.</p>
       </form>

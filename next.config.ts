@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 const config: NextConfig = {
   serverExternalPackages: ["argon2", "pg"],
   poweredByHeader: false,
+  experimental: { serverActions: { bodySizeLimit: "35mb" } }, // up to 3 files x 10 MB per action
   async headers() {
     return [{
       source: "/(.*)",

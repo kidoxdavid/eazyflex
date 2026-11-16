@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 const all: { label: string; href: string; perm: Permission }[] = [
   { label: "Dashboard", href: "/admin", perm: "dashboard.view" }, { label: "Users", href: "/admin/users", perm: "users.view" },
   { label: "Opportunities", href: "/admin/opportunities", perm: "opportunities.moderate" }, { label: "Verification", href: "/admin/verification", perm: "verification.decide" },
-  { label: "Categories & skills", href: "/admin/catalog", perm: "catalog.manage" }, { label: "Matching rules", href: "/admin/matching", perm: "matching.configure" }, { label: "Audit log", href: "/admin/audit", perm: "audit.view" },
+  { label: "Categories & skills", href: "/admin/catalog", perm: "catalog.manage" }, { label: "Matching rules", href: "/admin/matching", perm: "matching.configure" }, { label: "Reports", href: "/admin/reports", perm: "reports.review" }, { label: "Audit log", href: "/admin/audit", perm: "audit.view" },
 ];
 export default async function Layout({ children }: { children: React.ReactNode }) {
   const user = await requireUser("admin");

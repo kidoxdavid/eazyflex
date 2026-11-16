@@ -1,5 +1,9 @@
 # Changelog
-## Unreleased — Phase 2 collaboration
+## Unreleased — Phase 2 leftovers
+- Screening questions; file attachments (private storage, validated, authorised downloads); email notifications with per-category preferences and SMTP delivery; admin reports queue for messages and reviews with audited content access; review hiding. Migration `0003_phase2_leftovers`.
+- 95 Vitest tests + 20-step Playwright journey.
+
+## Phase 2 collaboration
 - Worker shortlist, invitations, messaging (with contact-detail guard), assignments with work submissions/hours/approval, blind reviews with public worker ratings, notification centre. Migration `0002_phase2`.
 - 79 Vitest tests + 19-step Playwright journey.
 

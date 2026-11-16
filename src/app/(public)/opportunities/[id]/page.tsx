@@ -98,6 +98,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
               <form action={applyAction} className="mt-3 space-y-3">
                 <input type="hidden" name="opportunityId" value={id} />
                 <Field label="Why are you a good fit?" htmlFor="proposal" hint="At least 30 characters. Use your own real experience."><Textarea id="proposal" name="proposal" required minLength={30} /></Field>
+                {d.questions.map((q) => <Field key={q.id} label={q.prompt + (q.required ? "" : " (optional)")} htmlFor={`a${q.id}`}><Textarea id={`a${q.id}`} name={`answer_${q.id}`} rows={2} required={q.required} maxLength={2000} /></Field>)}
                 {o.payType === "hourly" && <Field label="Your proposed hourly rate ($, optional)" htmlFor="pr"><Input id="pr" name="proposedRate" type="number" step="0.01" min="0" /></Field>}
                 <Field label="Availability notes (optional)" htmlFor="an"><Textarea id="an" name="availabilityNote" rows={2} /></Field>
                 <Button type="submit" className="w-full">Submit application</Button>

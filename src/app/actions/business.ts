@@ -27,6 +27,7 @@ export async function saveOpportunityAction(f: FormData) {
     workersNeeded: str(f, "workersNeeded") || 1, experienceLevel: str(f, "experienceLevel") || "entry", recurrenceNote: str(f, "recurrenceNote"),
     deliverables: str(f, "deliverables"), equipment: str(f, "equipment"), selectionProcess: str(f, "selectionProcess"), cancellationTerms: str(f, "cancellationTerms"),
     qualificationsRequired: str(f, "qualificationsRequired"), skillIds: strs(f, "skillIds"), mandatorySkillIds: strs(f, "mandatorySkillIds"), schedule: parseWindows(f, "s"),
+    questions: [0, 1, 2, 3, 4].map((n) => ({ prompt: (str(f, `q_${n}`) ?? "").trim(), required: f.get(`qreq_${n}`) === "on" })).filter((q) => q.prompt),
   };
   let dest: string; let params: Record<string, string> = {};
   try {

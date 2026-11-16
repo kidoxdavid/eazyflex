@@ -80,7 +80,8 @@ export async function applyAction(f: FormData) {
   const u = await requireUser("worker");
   const id = str(f, "opportunityId") ?? "";
   await run(async () => {
-    await applyToOpportunity(u.id, { opportunityId: id, proposal: str(f, "proposal"), proposedRate: str(f, "proposedRate") ?? "", availabilityNote: str(f, "availabilityNote") });
+    await applyToOpportunity(u.id, { opportunityId: id, proposal: str(f, "proposal"), proposedRate: str(f, "proposedRate") ?? "", availabilityNote: str(f, "availabilityNote"),
+      answers: Object.fromEntries([...f.entries()].filter(([k]) => k.startsWith("answer_")).map(([k, v]) => [k.slice(7), String(v)])) });
     return "/worker/applications?ok=" + encodeURIComponent("Application submitted");
   }, `/opportunities/${id}`);
 }

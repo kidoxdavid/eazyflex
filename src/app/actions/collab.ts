@@ -4,7 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { notifications } from "@/server/db/schema";
 import { requireUser } from "@/server/auth/session";
-import { run, str } from "./util";
+import { run, str, readUploads } from "./util";
 import * as R from "@/server/services/relationships";
 import * as M from "@/server/services/messaging";
 import * as A from "@/server/services/assignments";
@@ -34,7 +34,8 @@ export async function openConversationAction(f: FormData) {
 }
 export async function sendMessageAction(f: FormData) {
   const u = await requireUser(); const id = str(f, "conversationId") ?? "";
-  await run(() => M.sendMessage(u.id, id, str(f, "body") ?? ""), `/${u.kind}/messages/${id}`);
+  const uploads = await readUploads(f);
+  await run(() => M.sendMessage(u.id, id, str(f, "body") ?? "", uploads), `/${u.kind}/messages/${id}`);
 }
 export async function reportMessageAction(f: FormData) {
   const u = await requireUser(); const cid = str(f, "conversationId") ?? "";
@@ -44,7 +45,8 @@ export async function reportMessageAction(f: FormData) {
 export async function workerAssignmentAction(f: FormData) {
   const u = await requireUser("worker"); const id = str(f, "id") ?? "";
   const act = str(f, "action") as "start" | "submit" | "cancel";
-  await run(() => A.workerAction(u.id, id, act, { note: str(f, "note"), hoursWorked: str(f, "hoursWorked") ?? "", link: str(f, "link") ?? "", reason: str(f, "reason") }), `/worker/assignments/${id}`, act === "start" ? "Work started" : act === "submit" ? "Work submitted for review" : "Assignment cancelled");
+  const uploads = await readUploads(f);
+  await run(() => A.workerAction(u.id, id, act, { note: str(f, "note"), hoursWorked: str(f, "hoursWorked") ?? "", link: str(f, "link") ?? "", reason: str(f, "reason") }, uploads), `/worker/assignments/${id}`, act === "start" ? "Work started" : act === "submit" ? "Work submitted for review" : "Assignment cancelled");
 }
 export async function businessAssignmentAction(f: FormData) {
   const u = await requireUser("business"); const id = str(f, "id") ?? "";
@@ -59,4 +61,15 @@ export async function markNotificationsReadAction() {
   const u = await requireUser();
   await db.update(notifications).set({ readAt: new Date() }).where(and(eq(notifications.userId, u.id), isNull(notifications.readAt)));
   redirect(`/${u.kind}/notifications`);
+}
+
+export async function savePrefsAction(f: FormData) {
+  const u = await requireUser();
+  const { savePrefs } = await import("@/server/notify");
+  await run(() => savePrefs(u.id, { applications: f.get("applications") === "on", messages: f.get("messages") === "on", assignments: f.get("assignments") === "on", invitations: f.get("invitations") === "on", reviews: f.get("reviews") === "on" }), `/${u.kind}/settings`, "Notification preferences saved");
+}
+
+export async function reportReviewAction(f: FormData) {
+  const u = await requireUser(); const { reportReview } = await import("@/server/services/moderation");
+  await run(() => reportReview(u.id, str(f, "reviewId") ?? "", str(f, "reason") ?? ""), `/${u.kind}/assignments/${str(f, "assignmentId")}`, "Reported. Our team will review it.");
 }

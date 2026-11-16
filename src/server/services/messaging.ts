@@ -5,6 +5,7 @@ import { audit } from "../audit";
 import { notify } from "../notify";
 import { rateLimit } from "../rate-limit";
 import { ServiceError } from "./identity";
+import { attachmentsFor, saveUploads, safeName, type Upload } from "./files";
 import { privateName } from "./matching";
 
 const CONTACT = /([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})|((?:\+?\d[\s().-]?){9,})|(https?:\/\/(?:wa\.me|t\.me|api\.whatsapp\.com)\S*)/i;
@@ -56,18 +57,23 @@ async function loadForParticipant(userId: string, conversationId: string) {
   return { c, me };
 }
 
-export async function sendMessage(userId: string, conversationId: string, bodyRaw: string) {
+export async function sendMessage(userId: string, conversationId: string, bodyRaw: string, uploads: Upload[] = []) {
   const { c, me } = await loadForParticipant(userId, conversationId);
-  const body = bodyRaw.trim();
+  let body = bodyRaw.trim();
+  if (!body && uploads.length) body = "📎 Attachment";
   if (!body) throw new ServiceError("Write a message first");
   if (body.length > 4000) throw new ServiceError("Message is too long (4000 characters max)");
   if (!(await rateLimit(`msg:${userId}`, 30, 60))) throw new ServiceError("You are sending messages too quickly", "rate_limited");
-  if (CONTACT.test(body) && !(await hasConfirmedAssignment(c.businessId, c.workerId)))
+  if ((CONTACT.test(body) || uploads.some((u) => CONTACT.test(safeName(u.name)))) && !(await hasConfirmedAssignment(c.businessId, c.workerId)))
     throw new ServiceError("For everyone’s safety, phone numbers, emails and external chat links can be shared only after an assignment is confirmed.");
+  const { validateUpload } = await import("./files");
+  uploads.forEach(validateUpload); // reject bad files before anything is written
+  let messageId = "";
   await db.transaction(async (tx) => {
-    await tx.insert(messages).values({ conversationId, senderId: userId, body });
+    [{ id: messageId }] = await tx.insert(messages).values({ conversationId, senderId: userId, body }).returning({ id: messages.id });
     await tx.update(conversations).set({ lastMessageAt: new Date(), ...(me.side === "worker" ? { workerLastReadAt: new Date() } : { businessLastReadAt: new Date() }) }).where(eq(conversations.id, conversationId));
   });
+  if (uploads.length) await saveUploads(userId, uploads, { messageId }).catch(async (e) => { await db.delete(messages).where(eq(messages.id, messageId)); throw e; });
   if (me.side === "worker") {
     const owners = await db.select({ u: businessMembers.userId }).from(businessMembers).where(eq(businessMembers.businessId, c.businessId));
     for (const o of owners) await notify(o.u, "message", "New message", "You have a new message.", `/business/messages/${c.id}`);
@@ -80,7 +86,8 @@ export async function getConversation(userId: string, conversationId: string) {
   await db.update(conversations).set(me.side === "worker" ? { workerLastReadAt: new Date() } : { businessLastReadAt: new Date() }).where(eq(conversations.id, conversationId));
   const [b] = await db.select().from(businesses).where(eq(businesses.id, c.businessId));
   const [w] = await db.select().from(users).where(eq(users.id, c.workerId));
-  return { c, me: me.side, msgs, businessName: b.name, workerName: me.side === "business" ? privateName(w.fullName) : w.fullName };
+  const atts = await attachmentsFor({ messageIds: msgs.map((m) => m.id) });
+  return { c, me: me.side, msgs: msgs.map((m) => ({ ...m, attachments: atts.filter((a) => a.messageId === m.id) })), businessName: b.name, workerName: me.side === "business" ? privateName(w.fullName) : w.fullName };
 }
 
 export async function listConversations(userId: string) {

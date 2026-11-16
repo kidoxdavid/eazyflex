@@ -33,3 +33,9 @@ export async function skillAction(f: FormData) {
   const a = await actor();
   await run(() => A.upsertSkill(a, { name: str(f, "name") ?? "", categoryId: str(f, "categoryId") }), "/admin/catalog", "Skill added");
 }
+
+export async function resolveReportAction(f: FormData) {
+  const a = await actor(); const { resolveMessageReport, resolveReviewReport } = await import("@/server/services/moderation");
+  const kind = str(f, "kind"), id = str(f, "id") ?? "", note = str(f, "note") ?? "", outcome = str(f, "outcome") ?? "";
+  await run(() => kind === "message" ? resolveMessageReport(a, id, outcome as "actioned", note) : resolveReviewReport(a, id, outcome as "hide", note), "/admin/reports", "Report resolved");
+}

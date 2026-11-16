@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge, Button, Card, Field, Flash, Input, PageHeader, Textarea } from "./ui";
-import { PAYSUFFIX, ReviewSection, STATUS_TONE, formatMoney } from "./collab";
+import { FileLinks, PAYSUFFIX, ReviewSection, STATUS_TONE, formatMoney } from "./collab";
 import { businessAssignmentAction, openConversationAction, workerAssignmentAction } from "@/app/actions/collab";
 import type { getAssignment } from "@/server/services/assignments";
 
@@ -24,10 +24,11 @@ export function AssignmentView({ d, userId, sp }: { d: D; userId: string; sp: { 
 
       {w && ["confirmed", "in_progress", "changes_requested"].includes(a.status) && (
         <Card className="mb-5"><h2 className="font-sans text-lg font-semibold">Submit work</h2>
-          <form action={act} className="mt-3 space-y-3"><input type="hidden" name="id" value={a.id} /><input type="hidden" name="action" value="submit" />
+          <form action={act} encType="multipart/form-data" className="mt-3 space-y-3"><input type="hidden" name="id" value={a.id} /><input type="hidden" name="action" value="submit" />
             <Field label="What are you submitting?" htmlFor="note"><Textarea id="note" name="note" required minLength={10} /></Field>
             {a.payType === "hourly" && <Field label="Hours worked (required for hourly work)" htmlFor="h"><Input id="h" name="hoursWorked" type="number" step="0.25" min="0.25" required /></Field>}
-            <Field label="Link to deliverable (optional)" htmlFor="l" hint="File uploads aren’t available yet — share a link."><Input id="l" name="link" type="url" /></Field>
+            <Field label="Link to deliverable (optional)" htmlFor="l"><Input id="l" name="link" type="url" /></Field>
+            <Field label="Attach files (optional)" htmlFor="fl" hint="Up to 3 files: pdf, png, jpg, docx, xlsx, csv, txt; 10 MB each. Files are not virus-scanned yet."><input id="fl" name="files" type="file" multiple className="block text-sm" accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.csv,.txt" /></Field>
             <Button type="submit">Submit for approval</Button></form></Card>
       )}
       {!w && a.status === "submitted" && (
@@ -36,7 +37,7 @@ export function AssignmentView({ d, userId, sp }: { d: D; userId: string; sp: { 
       )}
 
       <h2 className="mb-2 text-xl font-semibold">Submissions</h2>
-      {d.submissions.length === 0 ? <p className="text-sm text-muted">Nothing submitted yet.</p> : <div className="space-y-3">{d.submissions.map((s) => <Card key={s.id} className="text-sm"><p className="whitespace-pre-line">{s.note}</p>{s.hoursWorked && <p className="mt-1 text-muted">Hours: {Number(s.hoursWorked)}</p>}{s.link && <p className="mt-1"><a className="break-all underline" href={s.link} rel="noopener noreferrer nofollow" target="_blank">{s.link}</a></p>}<p className="mt-1 text-xs text-muted">{s.createdAt.toLocaleString("en-CA")} · {s.outcome ? s.outcome.replace("_", " ") : "awaiting review"}{s.reviewerNote ? ` — “${s.reviewerNote}”` : ""}</p></Card>)}</div>}
+      {d.submissions.length === 0 ? <p className="text-sm text-muted">Nothing submitted yet.</p> : <div className="space-y-3">{d.submissions.map((s) => <Card key={s.id} className="text-sm"><p className="whitespace-pre-line">{s.note}</p>{s.hoursWorked && <p className="mt-1 text-muted">Hours: {Number(s.hoursWorked)}</p>}<FileLinks items={s.attachments} />{s.link && <p className="mt-1"><a className="break-all underline" href={s.link} rel="noopener noreferrer nofollow" target="_blank">{s.link}</a></p>}<p className="mt-1 text-xs text-muted">{s.createdAt.toLocaleString("en-CA")} · {s.outcome ? s.outcome.replace("_", " ") : "awaiting review"}{s.reviewerNote ? ` — “${s.reviewerNote}”` : ""}</p></Card>)}</div>}
 
       <ReviewSection a={d} userId={userId} />
 

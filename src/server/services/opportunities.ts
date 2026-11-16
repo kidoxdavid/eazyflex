@@ -2,7 +2,7 @@ import { and, asc, desc, eq, gte, inArray, lte, sql, type SQL } from "drizzle-or
 import { z } from "zod";
 import { db } from "../db/client";
 import {
-  businesses, businessMembers, categories, opportunities, opportunitySchedules, opportunitySkills, serviceAreas, skills,
+  businesses, businessMembers, categories, opportunities, opportunityQuestions, opportunitySchedules, opportunitySkills, serviceAreas, skills, applications,
 } from "../db/schema";
 import { audit } from "../audit";
 import { ServiceError } from "./identity";
@@ -46,6 +46,7 @@ export const opportunitySchema = z.object({
   qualificationsRequired: z.string().trim().max(500).optional(),
   skillIds: z.array(z.string().uuid()).max(15).default([]),
   mandatorySkillIds: z.array(z.string().uuid()).max(15).default([]),
+  questions: z.array(z.object({ prompt: z.string().trim().min(5, "Each screening question needs at least 5 characters").max(300), required: z.boolean() })).max(5).default([]),
   schedule: z.array(z.object({ weekday: z.number().int().min(0).max(6), startMinute: z.number().int().min(0).max(1439), endMinute: z.number().int().min(1).max(1440) })
     .refine((s) => s.endMinute > s.startMinute, "Schedule end must be after start")).max(21).default([]),
 });
@@ -122,6 +123,12 @@ export async function saveOpportunity(userId: string, businessId: string, raw: u
       oppId = o.id;
     }
     if (i.skillIds.length) await tx.insert(opportunitySkills).values(i.skillIds.map((skillId) => ({ opportunityId: oppId!, skillId, mandatory: i.mandatorySkillIds.includes(skillId) })));
+    // Screening questions are frozen once anyone has applied (answers reference them).
+    const [{ n: appCount }] = await tx.select({ n: sql<number>`count(*)::int` }).from(applications).where(eq(applications.opportunityId, oppId!));
+    if (appCount === 0) {
+      await tx.delete(opportunityQuestions).where(eq(opportunityQuestions.opportunityId, oppId!));
+      if (i.questions.length) await tx.insert(opportunityQuestions).values(i.questions.map((q, n) => ({ opportunityId: oppId!, prompt: q.prompt, required: q.required, sortOrder: n })));
+    }
     if (i.schedule.length) await tx.insert(opportunitySchedules).values(i.schedule.map((s) => ({ opportunityId: oppId!, ...s })));
     await audit(userId, opts.publish ? "opportunity.submitted" : "opportunity.draft_saved", "opportunity", oppId, { status }, tx);
     return { id: oppId!, status };
@@ -183,11 +190,12 @@ export async function getOpportunityDetail(id: string) {
     .leftJoin(categories, eq(categories.id, opportunities.categoryId)).leftJoin(serviceAreas, eq(serviceAreas.id, opportunities.serviceAreaId))
     .where(eq(opportunities.id, id)).limit(1);
   if (!r) return null;
-  const [sk, sched] = await Promise.all([
+  const [sk, sched, questions] = await Promise.all([
     db.select({ skillId: skills.id, name: skills.name, mandatory: opportunitySkills.mandatory }).from(opportunitySkills).innerJoin(skills, eq(skills.id, opportunitySkills.skillId)).where(eq(opportunitySkills.opportunityId, id)),
     db.select().from(opportunitySchedules).where(eq(opportunitySchedules.opportunityId, id)).orderBy(asc(opportunitySchedules.weekday), asc(opportunitySchedules.startMinute)),
+    db.select().from(opportunityQuestions).where(eq(opportunityQuestions.opportunityId, id)).orderBy(asc(opportunityQuestions.sortOrder)),
   ]);
-  return { ...r, skills: sk, schedule: sched };
+  return { ...r, skills: sk, schedule: sched, questions };
 }
 
 export async function setOpportunityStatus(userId: string, businessId: string, id: string, status: "paused" | "closed" | "published") {

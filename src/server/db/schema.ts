@@ -96,7 +96,12 @@ export const emailOutbox = pgTable("email_outbox", {
   subject: text("subject").notNull(),
   body: text("body").notNull(),
   link: text("link"),
-  status: text("status").notNull().default("queued"), // queued | sent | failed
+  status: text("status").notNull().default("queued"), // queued | sent | failed | skipped
+  attempts: integer("attempts").notNull().default(0),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  error: text("error"),
+  userId: uuid("user_id"),
+  category: text("category"),
   createdAt: createdAt(),
 });
 
@@ -457,7 +462,10 @@ export const messageReports = pgTable("message_reports", {
   messageId: uuid("message_id").notNull().references(() => messages.id, { onDelete: "cascade" }),
   reporterId: uuid("reporter_id").notNull().references(() => users.id),
   reason: text("reason").notNull(),
-  status: text("status").notNull().default("open"),
+  status: text("status").notNull().default("open"), // open | actioned | dismissed
+  resolutionNote: text("resolution_note"),
+  resolvedBy: uuid("resolved_by").references(() => users.id),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
   createdAt: createdAt(),
 }, (t) => [uniqueIndex("message_reports_uq").on(t.messageId, t.reporterId)]);
 
@@ -510,5 +518,57 @@ export const reviews = pgTable("reviews", {
   rating: smallint("rating").notNull(),
   quality: smallint("quality"), communication: smallint("communication"), reliability: smallint("reliability"), professionalism: smallint("professionalism"),
   comment: text("comment"),
+  hidden: boolean("hidden").notNull().default(false), // set by moderation; hidden reviews never count or display
+  hiddenReason: text("hidden_reason"),
   createdAt: createdAt(),
 }, (t) => [uniqueIndex("reviews_assignment_reviewer_uq").on(t.assignmentId, t.reviewerId)]);
+
+// ---------- Phase 2 leftovers ----------
+export const opportunityQuestions = pgTable("opportunity_questions", {
+  id: id(),
+  opportunityId: uuid("opportunity_id").notNull().references(() => opportunities.id, { onDelete: "cascade" }),
+  prompt: text("prompt").notNull(),
+  required: boolean("required").notNull().default(true),
+  sortOrder: smallint("sort_order").notNull().default(0),
+});
+export const applicationAnswers = pgTable("application_answers", {
+  applicationId: uuid("application_id").notNull().references(() => applications.id, { onDelete: "cascade" }),
+  questionId: uuid("question_id").notNull().references(() => opportunityQuestions.id, { onDelete: "cascade" }),
+  answer: text("answer").notNull(),
+}, (t) => [primaryKey({ columns: [t.applicationId, t.questionId] })]);
+
+export const notificationPrefs = pgTable("notification_prefs", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  emailApplications: boolean("email_applications").notNull().default(true),
+  emailMessages: boolean("email_messages").notNull().default(true),
+  emailAssignments: boolean("email_assignments").notNull().default(true),
+  emailInvitations: boolean("email_invitations").notNull().default(true),
+  emailReviews: boolean("email_reviews").notNull().default(true),
+  updatedAt: updatedAt(),
+});
+
+export const reviewReports = pgTable("review_reports", {
+  id: id(),
+  reviewId: uuid("review_id").notNull().references(() => reviews.id, { onDelete: "cascade" }),
+  reporterId: uuid("reporter_id").notNull().references(() => users.id),
+  reason: text("reason").notNull(),
+  status: text("status").notNull().default("open"),
+  resolutionNote: text("resolution_note"),
+  resolvedBy: uuid("resolved_by").references(() => users.id),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("review_reports_uq").on(t.reviewId, t.reporterId)]);
+
+export const files = pgTable("files", {
+  id: id(),
+  uploaderId: uuid("uploader_id").notNull().references(() => users.id),
+  storageKey: text("storage_key").notNull().unique(),
+  originalName: text("original_name").notNull(),
+  mime: text("mime").notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+  sha256: text("sha256").notNull(),
+  scanStatus: text("scan_status").notNull().default("unscanned"), // unscanned | clean | infected (no scanner integrated yet)
+  messageId: uuid("message_id").references(() => messages.id, { onDelete: "cascade" }),
+  submissionId: uuid("submission_id").references(() => assignmentSubmissions.id, { onDelete: "cascade" }),
+  createdAt: createdAt(),
+}, (t) => [index("files_message_idx").on(t.messageId), index("files_submission_idx").on(t.submissionId)]);

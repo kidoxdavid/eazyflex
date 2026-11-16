@@ -5,6 +5,7 @@ import { assignmentHistory, assignmentSubmissions, assignments, businessMembers,
 import { audit } from "../audit";
 import { notify } from "../notify";
 import { ServiceError } from "./identity";
+import { attachmentsFor, saveUploads, validateUpload, type Upload } from "./files";
 import { privateName } from "./matching";
 
 type Status = typeof assignments.$inferSelect["status"];
@@ -39,7 +40,7 @@ export const submitSchema = z.object({
   link: z.string().trim().url("Link must be a valid URL").max(500).optional().or(z.literal("")).transform((v) => v || undefined),
 });
 
-export async function workerAction(userId: string, id: string, action: "start" | "submit" | "cancel", input: Record<string, unknown> = {}) {
+export async function workerAction(userId: string, id: string, action: "start" | "submit" | "cancel", input: Record<string, unknown> = {}, uploads: Upload[] = []) {
   const x = await load(userId, id);
   if (x.side !== "worker") throw new ServiceError("Assignment not found", "not_found");
   const a = x.a;
@@ -51,7 +52,9 @@ export async function workerAction(userId: string, id: string, action: "start" |
     if (!["confirmed", "in_progress", "changes_requested"].includes(a.status)) throw new ServiceError("You can’t submit work in the current status");
     const i = submitSchema.parse(input);
     if (a.payType === "hourly" && !i.hoursWorked) throw new ServiceError("Enter the hours you worked for this hourly assignment");
-    await db.insert(assignmentSubmissions).values({ assignmentId: id, note: i.note, hoursWorked: i.hoursWorked?.toString() ?? null, link: i.link ?? null });
+    uploads.forEach(validateUpload);
+    const [sub] = await db.insert(assignmentSubmissions).values({ assignmentId: id, note: i.note, hoursWorked: i.hoursWorked?.toString() ?? null, link: i.link ?? null }).returning({ id: assignmentSubmissions.id });
+    await saveUploads(userId, uploads, { submissionId: sub.id }).catch(async (e) => { await db.delete(assignmentSubmissions).where(eq(assignmentSubmissions.id, sub.id)); throw e; });
     await move(a, "submitted", userId);
     await notifyBusiness(a.businessId, "Work submitted", `Work was submitted on “${x.title}” and needs your review.`, `/business/assignments/${id}`);
   } else {
@@ -103,7 +106,8 @@ export async function getAssignment(userId: string, id: string) {
     db.select().from(businesses).where(eq(businesses.id, x.a.businessId)), db.select().from(users).where(eq(users.id, x.a.workerId)),
   ]);
   const revs = await visibleReviews(id, userId);
-  return { ...x, submissions: subs, history: hist, businessName: b.name, workerName: x.side === "business" ? privateName(w.fullName) : w.fullName, reviews: revs };
+  const atts = await attachmentsFor({ submissionIds: subs.map((s) => s.id) });
+  return { ...x, submissions: subs.map((s) => ({ ...s, attachments: atts.filter((a) => a.submissionId === s.id) })), history: hist, businessName: b.name, workerName: x.side === "business" ? privateName(w.fullName) : w.fullName, reviews: revs };
 }
 
 // ---------- Reviews ----------
@@ -138,7 +142,7 @@ export async function submitReview(userId: string, assignmentId: string, raw: un
  */
 export async function visibleReviews(assignmentId: string, viewerId: string) {
   const [a] = await db.select().from(assignments).where(eq(assignments.id, assignmentId)).limit(1);
-  const rows = await db.select().from(reviews).where(eq(reviews.assignmentId, assignmentId));
+  const rows = await db.select().from(reviews).where(and(eq(reviews.assignmentId, assignmentId), eq(reviews.hidden, false)));
   const revealed = rows.length >= 2 || (a?.completedAt && Date.now() - a.completedAt.getTime() > REVIEW_REVEAL_DAYS * 86400_000);
   return rows.filter((r) => r.reviewerId === viewerId || revealed);
 }
@@ -149,7 +153,7 @@ export async function workerRatingSummary(workerIds: string[]) {
   const rows = await db.execute(sql`
     select r.reviewee_id as id, avg(r.rating)::float as avg, count(*)::int as count
     from reviews r join assignments a on a.id = r.assignment_id
-    where r.reviewee_id in (${sql.join(workerIds.map((i) => sql`${i}::uuid`), sql`, `)})
+    where r.hidden = false and r.reviewee_id in (${sql.join(workerIds.map((i) => sql`${i}::uuid`), sql`, `)})
       and a.worker_id = r.reviewee_id
       and ((select count(*) from reviews r2 where r2.assignment_id = r.assignment_id) >= 2 or a.completed_at < now() - make_interval(days => ${REVIEW_REVEAL_DAYS}))
     group by r.reviewee_id`);

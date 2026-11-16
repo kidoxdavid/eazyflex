@@ -118,6 +118,59 @@ await step("collab: message, contact-info guard, deliver work, approve, blind re
   await w.reload(); must((await w.textContent("main")).includes("Slow replies"), "review not revealed after both reviewed");
   await m.close();
 });
+await step("leftovers: attachment upload + authenticated download, report → admin resolves, settings, screening question", async () => {
+  const PDF = Buffer.from("%PDF-1.4\n1 0 obj<<>>endobj\n%%EOF");
+  // worker sends a file in the existing thread
+  await w.goto(`${BASE}/worker/messages`); await w.click("a:has-text('Maple')");
+  await w.fill("#body", "Here is my invoice template."); await w.setInputFiles("input[name=files]", { name: "template.pdf", mimeType: "application/pdf", buffer: PDF });
+  await w.click("button:has-text('Send')"); await w.waitForSelector("a:has-text('template.pdf')");
+  const fileHref = await w.locator("a:has-text('template.pdf')").first().getAttribute("href");
+  const own = await w.context().request.get(BASE + fileHref); must(own.status() === 200, "owner download " + own.status());
+  must((await own.headers())["content-disposition"].startsWith("attachment"), "not forced to download"); must((await own.headers())["x-content-type-options"] === "nosniff", "nosniff missing");
+  // bad file type is refused in the UI flow
+  await w.fill("#body", "and an exe"); await w.setInputFiles("input[name=files]", { name: "bad.exe", mimeType: "application/octet-stream", buffer: Buffer.from("MZ") });
+  await w.click("button:has-text('Send')"); await w.waitForSelector("[role=alert]:has-text('isn’t allowed')");
+  // anonymous and unrelated users cannot fetch it
+  const anon = await browser.newContext(); must((await anon.request.get(BASE + fileHref)).status() === 404, "anonymous could download"); await anon.close();
+  const other = await ctx({ width: 1000, height: 800 });
+  await other.goto(`${BASE}/sign-in`); await other.fill("#email", "walter@demo.test"); await other.fill("#password", "DemoPass2026!"); await other.click("button:has-text('Sign in')"); await other.waitForURL(/worker/);
+  must((await other.context().request.get(BASE + fileHref)).status() === 404, "unrelated worker could download"); await other.close();
+  // business sees it, and reports the message
+  const m = await ctx({ width: 1280, height: 900 });
+  await m.goto(`${BASE}/sign-in`); await m.fill("#email", "owner@maple.demo.test"); await m.fill("#password", "DemoPass2026!"); await m.click("button:has-text('Sign in')"); await m.waitForURL(/business/);
+  must((await m.context().request.get(BASE + fileHref)).status() === 200, "business participant could not download");
+  await m.goto(`${BASE}/business/messages`); await m.click("a:has-text('Riley')");
+  const bubble = m.locator("div.rounded-2xl", { hasText: "template.pdf" }); // report the message that carries the attachment
+  await bubble.locator("summary:has-text('Report')").click(); await bubble.locator("input[name=reason]").fill("Test report of this message"); await bubble.locator("button:has-text('Send')").click(); await m.waitForSelector("text=Reported");
+  // admin resolves it and the audit log shows the content access
+  const a2 = await ctx({ width: 1280, height: 900 });
+  await a2.goto(`${BASE}/sign-in`); await a2.fill("#email", "moderator@demo.test"); await a2.fill("#password", "DemoPass2026!"); await a2.click("button:has-text('Sign in')"); await a2.waitForURL(/admin/);
+  await a2.goto(`${BASE}/admin/reports`); await a2.waitForSelector("text=Test report of this message");
+  must((await a2.context().request.get(BASE + fileHref)).status() === 200, "moderator could not open reported attachment");
+  await a2.fill("input[name=note] >> nth=0", "Reviewed, no action needed"); await a2.click("button:has-text('Dismiss') >> nth=0"); await a2.waitForSelector("text=Report resolved");
+  must((await a2.context().request.get(BASE + fileHref)).status() === 404, "moderator retained access after resolution");
+  const sa = await ctx({ width: 1280, height: 900 });
+  await sa.goto(`${BASE}/sign-in`); await sa.fill("#email", "admin@demo.test"); await sa.fill("#password", "DemoPass2026!"); await sa.click("button:has-text('Sign in')"); await sa.waitForURL(/admin/);
+  await sa.goto(`${BASE}/admin/audit`); must(await sa.isVisible("text=report.message_content_accessed"), "content access not audited"); must(await sa.isVisible("text=file.accessed_by_admin"), "file access not audited");
+  // finance role cannot open reports
+  const f = await ctx({ width: 1280, height: 900 });
+  await f.goto(`${BASE}/sign-in`); await f.fill("#email", "finance@demo.test"); await f.fill("#password", "DemoPass2026!"); await f.click("button:has-text('Sign in')"); await f.waitForURL(/admin/);
+  await f.goto(`${BASE}/admin/reports`); must(/\/admin\?error=/.test(f.url()), "finance reached reports");
+  // notification settings persist
+  await w.goto(`${BASE}/worker/settings`); await w.uncheck("input[name=messages]"); await w.click("button:has-text('Save')"); await w.waitForSelector("text=preferences saved");
+  await w.reload(); must(!(await w.isChecked("input[name=messages]")), "preference not persisted");
+  // screening question: business posts, worker must answer
+  await m.goto(`${BASE}/business/post?type=micro_task`);
+  await m.fill("#title", `E2E screening ${stamp}`); await m.fill("#description", "Tidy a spreadsheet so it imports cleanly; a screening question applies to this posting."); await m.selectOption("#cat", { label: "Administration & business support" });
+  await m.fill("#pmin", "30"); await m.fill("input[name=q_0]", "Which spreadsheet tools do you use daily?"); await m.click("button:has-text('Publish')"); await m.waitForURL(/business\/opportunities/);
+  const oppUrl = m.url().split("?")[0].replace("/business", "");
+  const p2 = await ctx({ width: 1000, height: 800 });
+  await p2.goto(`${BASE}/sign-in`); await p2.fill("#email", "sam@demo.test"); await p2.fill("#password", "DemoPass2026!"); await p2.click("button:has-text('Sign in')"); await p2.waitForURL(/worker/);
+  await p2.goto(oppUrl); await p2.waitForSelector("text=Which spreadsheet tools do you use daily?");
+  await p2.fill("#proposal", "I build and clean spreadsheets for small teams every week."); await p2.fill("textarea[name^=answer_]", "Excel and Google Sheets"); await p2.click("button:has-text('Submit application')"); await p2.waitForURL(/worker\/applications/);
+  await m.goto(m.url()); await m.waitForSelector("text=Excel and Google Sheets");
+  await m.close(); await a2.close(); await sa.close(); await f.close(); await p2.close();
+});
 await step("business: talent directory hides contact details", async () => {
   await b.goto(`${BASE}/business/talent`); const t = await b.textContent("main");
   must(!t.includes("@"), "an email address appears in the talent directory");
