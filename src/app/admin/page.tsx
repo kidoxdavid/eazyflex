@@ -18,6 +18,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ e
         <Stat label="Businesses" value={s.bizTotal} hint={`${s.bizVerified} verified`} />
         <Stat label="Opportunities" value={s.opps} hint={`${s.oppsActive} live`} />
         <Stat label="Applications" value={s.apps} />
+        <Stat label="Active assignments" value={s.assignActive} hint={`${s.assignDone} completed`} />
         <Stat label="Opportunities pending review" value={s.pendingOpps} />
         <Stat label="Verification queue" value={s.pendingVerif} />
         <Stat label="Suspended / restricted accounts" value={s.suspended} />

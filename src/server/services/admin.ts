@@ -18,7 +18,9 @@ export function assertCan(actor: Actor, perm: Permission) {
 export async function dashboardStats(actor: Actor) {
   assertCan(actor, "dashboard.view");
   const one = async (q: ReturnType<typeof sql>) => Number(((await db.execute(q)).rows[0] as { n: number }).n);
-  const [workers, activeWorkers, bizTotal, bizVerified, opps, oppsActive, apps, pendingOpps, pendingVerif, suspended, demoUsers] = await Promise.all([
+  const [assignActive, assignDone, workers, activeWorkers, bizTotal, bizVerified, opps, oppsActive, apps, pendingOpps, pendingVerif, suspended, demoUsers] = await Promise.all([
+    one(sql`select count(*)::int n from assignments where status in ('confirmed','in_progress','submitted','changes_requested')`),
+    one(sql`select count(*)::int n from assignments where status='completed'`),
     one(sql`select count(*)::int n from users where kind='worker' and status <> 'deleted'`),
     one(sql`select count(*)::int n from users where kind='worker' and status='active' and last_login_at > now() - interval '30 days'`),
     one(sql`select count(*)::int n from businesses`),
@@ -31,7 +33,7 @@ export async function dashboardStats(actor: Actor) {
     one(sql`select count(*)::int n from users where status in ('suspended','restricted')`),
     one(sql`select count(*)::int n from users where is_demo`),
   ]);
-  return { workers, activeWorkers, bizTotal, bizVerified, opps, oppsActive, apps, pendingOpps, pendingVerif, suspended, demoUsers };
+  return { assignActive, assignDone, workers, activeWorkers, bizTotal, bizVerified, opps, oppsActive, apps, pendingOpps, pendingVerif, suspended, demoUsers };
 }
 
 export async function listUsers(actor: Actor, q?: string, kind?: string) {

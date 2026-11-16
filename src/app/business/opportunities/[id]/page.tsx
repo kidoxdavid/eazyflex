@@ -8,7 +8,9 @@ import { recommendWorkersForOpportunity } from "@/server/services/matching";
 import { BUSINESS_TRANSITIONS, applicationHistory } from "@/server/services/applications";
 import { db } from "@/server/db/client";
 import { applications, users } from "@/server/db/schema";
+import { inviteAction, shortlistAction } from "@/app/actions/collab";
 import { Badge, Button, Card, EmptyState, Field, Flash, LinkButton, PageHeader, Textarea } from "@/components/ui";
+import { openConversationAction } from "@/app/actions/collab";
 import { applicationNoteAction, applicationStatusAction, opportunityStatusAction } from "@/app/actions/business";
 
 export const dynamic = "force-dynamic";
@@ -46,14 +48,15 @@ export default async function Page({ params, searchParams }: { params: Promise<{
           {a.proposedRateCents && <p className="mt-2 text-sm text-muted">Proposed rate: ${(a.proposedRateCents / 100).toFixed(2)}/h</p>}
           {a.availabilityNote && <p className="mt-1 text-sm text-muted">Availability: {a.availabilityNote}</p>}
           {to.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{to.map((t) => <form key={t} action={applicationStatusAction}><input type="hidden" name="applicationId" value={a.id} /><input type="hidden" name="opportunityId" value={o.id} /><input type="hidden" name="to" value={t} /><Button variant={t === "declined" ? "outline" : "secondary"} type="submit">{LABEL[t]}</Button></form>)}</div>}
+          <form action={openConversationAction} className="mt-2"><input type="hidden" name="counterpartId" value={a.workerId} /><input type="hidden" name="opportunityId" value={o.id} /><input type="hidden" name="back" value={`/business/opportunities/${o.id}`} /><Button variant="ghost" type="submit">Message applicant</Button></form>
           <form action={applicationNoteAction} className="mt-3 space-y-2"><input type="hidden" name="applicationId" value={a.id} /><input type="hidden" name="opportunityId" value={o.id} /><Field label="Internal note (never shown to the applicant)" htmlFor={`n${a.id}`}><Textarea id={`n${a.id}`} name="note" rows={2} defaultValue={a.businessNote ?? ""} /></Field><Button variant="ghost" type="submit">Save note</Button></form>
           <details className="mt-2 text-sm"><summary className="cursor-pointer font-semibold">History</summary><ol className="mt-1 text-muted">{hist[i].map((h) => <li key={h.id}>{h.createdAt.toLocaleString("en-CA")} — {h.toStatus.replace(/_/g, " ")}</li>)}</ol></details>
         </Card>; })}</div>}
 
       {o.status === "published" && <>
         <h2 className="mb-1 mt-10 text-xl font-semibold">Recommended talent</h2>
-        <p className="mb-3 text-sm text-muted">Workers who opted in, are available for the requested hours and meet required skills. Explanations come from recorded matching data. Contacting workers is planned for the next release.</p>
-        {recs.length === 0 ? <p className="text-sm text-muted">No suitable workers found yet.</p> : <div className="space-y-3">{recs.map((r) => <Card key={r.workerId}><div className="flex flex-wrap justify-between gap-2"><div><h3 className="font-sans font-semibold">{r.displayName}</h3><p className="text-sm text-muted">{r.headline}</p></div><Badge tone={r.result.tier === "strong" ? "success" : "info"}>{r.result.score}/100 · {r.result.tier}</Badge></div><p className="mt-2 text-sm">{r.result.explanation}</p></Card>)}</div>}
+        <p className="mb-3 text-sm text-muted">Workers who opted in, are available for the requested hours and meet required skills. Explanations come from recorded matching data. You can invite or shortlist; messaging opens once someone applies or accepts.</p>
+        {recs.length === 0 ? <p className="text-sm text-muted">No suitable workers found yet.</p> : <div className="space-y-3">{recs.map((r) => <Card key={r.workerId}><div className="flex flex-wrap justify-between gap-2"><div><h3 className="font-sans font-semibold">{r.displayName}</h3><p className="text-sm text-muted">{r.headline}</p></div><Badge tone={r.result.tier === "strong" ? "success" : "info"}>{r.result.score}/100 · {r.result.tier}</Badge></div><p className="mt-2 text-sm">{r.result.explanation}</p><div className="mt-3 flex flex-wrap gap-2"><form action={inviteAction}><input type="hidden" name="workerId" value={r.workerId} /><input type="hidden" name="opportunityId" value={o.id} /><input type="hidden" name="back" value={`/business/opportunities/${o.id}`} /><Button variant="secondary" type="submit">Invite to apply</Button></form><form action={shortlistAction}><input type="hidden" name="workerId" value={r.workerId} /><input type="hidden" name="back" value={`/business/opportunities/${o.id}`} /><Button variant="outline" type="submit">Shortlist</Button></form></div></Card>)}</div>}
       </>}
     </>
   );

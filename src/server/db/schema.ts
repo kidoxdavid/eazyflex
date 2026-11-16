@@ -408,3 +408,107 @@ export const adminNotes = pgTable("admin_notes", {
   note: text("note").notNull(),
   createdAt: createdAt(),
 });
+
+// ---------- Phase 2: talent relationships, messaging, assignments, reviews ----------
+export const invitationStatus = pgEnum("invitation_status", ["pending", "accepted", "declined", "withdrawn"]);
+export const assignmentStatus = pgEnum("assignment_status", ["confirmed", "in_progress", "submitted", "changes_requested", "completed", "cancelled"]);
+
+export const talentShortlist = pgTable("talent_shortlist", {
+  businessId: uuid("business_id").notNull().references(() => businesses.id, { onDelete: "cascade" }),
+  workerId: uuid("worker_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  note: text("note"),
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: createdAt(),
+}, (t) => [primaryKey({ columns: [t.businessId, t.workerId] })]);
+
+export const workerInvitations = pgTable("worker_invitations", {
+  id: id(),
+  businessId: uuid("business_id").notNull().references(() => businesses.id, { onDelete: "cascade" }),
+  opportunityId: uuid("opportunity_id").notNull().references(() => opportunities.id, { onDelete: "cascade" }),
+  workerId: uuid("worker_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  message: text("message"),
+  status: invitationStatus("status").notNull().default("pending"),
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: createdAt(),
+  respondedAt: timestamp("responded_at", { withTimezone: true }),
+}, (t) => [uniqueIndex("invitations_opp_worker_uq").on(t.opportunityId, t.workerId)]);
+
+export const conversations = pgTable("conversations", {
+  id: id(),
+  businessId: uuid("business_id").notNull().references(() => businesses.id, { onDelete: "cascade" }),
+  workerId: uuid("worker_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  opportunityId: uuid("opportunity_id").references(() => opportunities.id, { onDelete: "set null" }),
+  workerLastReadAt: timestamp("worker_last_read_at", { withTimezone: true }),
+  businessLastReadAt: timestamp("business_last_read_at", { withTimezone: true }),
+  lastMessageAt: timestamp("last_message_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("conversations_pair_uq").on(t.businessId, t.workerId)]);
+
+export const messages = pgTable("messages", {
+  id: id(),
+  conversationId: uuid("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
+  senderId: uuid("sender_id").notNull().references(() => users.id),
+  body: text("body").notNull(),
+  createdAt: createdAt(),
+}, (t) => [index("messages_conv_idx").on(t.conversationId, t.createdAt)]);
+
+export const messageReports = pgTable("message_reports", {
+  id: id(),
+  messageId: uuid("message_id").notNull().references(() => messages.id, { onDelete: "cascade" }),
+  reporterId: uuid("reporter_id").notNull().references(() => users.id),
+  reason: text("reason").notNull(),
+  status: text("status").notNull().default("open"),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("message_reports_uq").on(t.messageId, t.reporterId)]);
+
+export const assignments = pgTable("assignments", {
+  id: id(),
+  applicationId: uuid("application_id").notNull().unique().references(() => applications.id),
+  opportunityId: uuid("opportunity_id").notNull().references(() => opportunities.id),
+  businessId: uuid("business_id").notNull().references(() => businesses.id),
+  workerId: uuid("worker_id").notNull().references(() => users.id),
+  status: assignmentStatus("status").notNull().default("confirmed"),
+  payType: payType("pay_type").notNull(),
+  agreedCents: integer("agreed_cents").notNull(), // agreed hourly rate / fee / shift pay (snapshot, in cents)
+  currency: text("currency").notNull().default("CAD"),
+  startDate: date("start_date"),
+  endDate: date("end_date"),
+  cancelReason: text("cancel_reason"),
+  cancelledBy: uuid("cancelled_by").references(() => users.id),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [index("assignments_worker_idx").on(t.workerId), index("assignments_business_idx").on(t.businessId)]);
+
+export const assignmentSubmissions = pgTable("assignment_submissions", {
+  id: id(),
+  assignmentId: uuid("assignment_id").notNull().references(() => assignments.id, { onDelete: "cascade" }),
+  note: text("note").notNull(),
+  hoursWorked: numeric("hours_worked", { precision: 6, scale: 2 }), // for hourly work
+  link: text("link"),
+  reviewerNote: text("reviewer_note"),
+  outcome: text("outcome"), // approved | changes_requested | null (pending)
+  createdAt: createdAt(),
+  decidedAt: timestamp("decided_at", { withTimezone: true }),
+});
+
+export const assignmentHistory = pgTable("assignment_history", {
+  id: id(),
+  assignmentId: uuid("assignment_id").notNull().references(() => assignments.id, { onDelete: "cascade" }),
+  fromStatus: assignmentStatus("from_status"),
+  toStatus: assignmentStatus("to_status").notNull(),
+  actorId: uuid("actor_id").references(() => users.id),
+  note: text("note"),
+  createdAt: createdAt(),
+});
+
+export const reviews = pgTable("reviews", {
+  id: id(),
+  assignmentId: uuid("assignment_id").notNull().references(() => assignments.id, { onDelete: "cascade" }),
+  reviewerId: uuid("reviewer_id").notNull().references(() => users.id),
+  revieweeId: uuid("reviewee_id").notNull().references(() => users.id),
+  rating: smallint("rating").notNull(),
+  quality: smallint("quality"), communication: smallint("communication"), reliability: smallint("reliability"), professionalism: smallint("professionalism"),
+  comment: text("comment"),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("reviews_assignment_reviewer_uq").on(t.assignmentId, t.reviewerId)]);

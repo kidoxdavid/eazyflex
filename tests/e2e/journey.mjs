@@ -96,6 +96,28 @@ await step("business: shortlists applicant, sends offer; worker accepts; opportu
   await m.reload(); await m.waitForSelector("span:has-text('filled')");
   await m.close();
 });
+await step("collab: message, contact-info guard, deliver work, approve, blind review", async () => {
+  // Worker "w" now holds an accepted assignment on the Maple bookkeeping job.
+  await w.goto(`${BASE}/worker/assignments`); await w.click("a:has-text('Weekly bookkeeping')");
+  await w.click("button:has-text('Start work')"); await w.waitForSelector("text=Work started");
+  await w.click("button:has-text('Message business')"); await w.waitForURL(/worker\/messages\//);
+  await w.fill("#body", "Happy to start — I'll send the first batch Friday."); await w.click("button:has-text('Send')"); await w.waitForSelector("text=send the first batch");
+  await w.goBack(); await w.goBack().catch(() => {});
+  await w.goto(`${BASE}/worker/assignments`); await w.click("a:has-text('Weekly bookkeeping')");
+  await w.fill("#note", "First batch of invoices entered and reconciled."); await w.fill("#h", "3.5"); await w.click("button:has-text('Submit for approval')"); await w.waitForSelector("text=Work submitted for review");
+  const m = await ctx({ width: 1280, height: 900 });
+  await m.goto(`${BASE}/sign-in`); await m.fill("#email", "owner@maple.demo.test"); await m.fill("#password", "DemoPass2026!"); await m.click("button:has-text('Sign in')"); await m.waitForURL(/business/);
+  await m.goto(`${BASE}/business/assignments`); await m.click("a:has-text('Weekly bookkeeping')");
+  must(await m.isVisible("text=Riley T."), "business should see first name + initial only");
+  must(!(await m.textContent("main")).includes("Riley Tester"), "full worker name leaked to business");
+  await m.click("button:has-text('Approve completion')"); await m.waitForSelector("text=Work approved");
+  await m.selectOption("#rating", "2"); await m.fill("#comment", "Slow replies."); await m.click("button:has-text('Submit review')"); await m.waitForSelector("text=Review submitted");
+  await w.goto(w.url()); await w.waitForSelector("text=Reviews");
+  must(!(await w.textContent("main")).includes("Slow replies"), "blind review leaked before worker reviewed");
+  await w.selectOption("#rating", "5"); await w.click("button:has-text('Submit review')"); await w.waitForSelector("text=Review submitted");
+  await w.reload(); must((await w.textContent("main")).includes("Slow replies"), "review not revealed after both reviewed");
+  await m.close();
+});
 await step("business: talent directory hides contact details", async () => {
   await b.goto(`${BASE}/business/talent`); const t = await b.textContent("main");
   must(!t.includes("@"), "an email address appears in the talent directory");

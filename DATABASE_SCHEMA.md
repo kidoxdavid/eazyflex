@@ -6,8 +6,9 @@
 **Businesses:** `businesses` (registered_business | household, verification_status), `business_members` (owner/manager/member).
 **Marketplace:** `opportunities` (6 engagement types, 4 pay types, cents, generated `tsvector` + GIN index), `opportunity_skills` (mandatory flag), `opportunity_schedules`, `saved_opportunities`, `saved_searches` (no UI yet).
 **Applications:** `applications` (unique per opportunity+worker, match snapshot, private business note), `application_status_history`.
+**Phase 2:** `talent_shortlist`, `worker_invitations` (unique per opportunity+worker), `conversations` (unique per business+worker; per-side last-read), `messages` (length check), `message_reports`, `assignments` (unique per application; snapshot of pay type + agreed cents), `assignment_submissions` (note, hours, link, reviewer outcome), `assignment_history`, `reviews` (1–5 checks, no self-review, unique per assignment+reviewer).
 **Other:** `notifications`, `matching_rules` (versioned; partial unique index = one active), `platform_settings`, `audit_logs`, `admin_notes`.
 
 **Integrity (migration 0001):** pay range checks, schedule/availability range checks, `(kind='admin') = (admin_role is not null)`, single active matching rule, and **append-only `audit_logs`** (BEFORE UPDATE/DELETE and TRUNCATE triggers raise). Note: a superuser/table owner can drop triggers — for production, run the app as a non-owner role without DDL rights.
 
-**Not yet modelled (brief lists them):** assignments, time entries, services/packages/orders, conversations/messages, payments/ledger/payouts/refunds/disputes, reviews, subscriptions/plans, pricing rules, feature flags, templates, analytics tables, documents.
+**Not yet modelled (brief lists them):** time entries, multi-worker coverage/handovers, services/packages/orders, message attachments, payments/ledger/payouts/refunds/disputes, review reports/moderation, subscriptions/plans, pricing rules, feature flags, templates, analytics tables, documents.

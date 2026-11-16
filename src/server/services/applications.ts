@@ -1,7 +1,8 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db/client";
-import { applicationStatusHistory, applications, businesses, notifications, opportunities, users } from "../db/schema";
+import { applicationStatusHistory, applications, assignments, businesses, notifications, opportunities, users } from "../db/schema";
+import { markInvitationAccepted } from "./relationships";
 import { audit } from "../audit";
 import { ServiceError } from "./identity";
 import { assertBusinessMember } from "./opportunities";
@@ -58,6 +59,7 @@ export async function applyToOpportunity(workerId: string, raw: unknown) {
       await audit(workerId, "application.submitted", "application", a.id, { opportunityId: i.opportunityId }, tx);
       return a;
     }).then(async (a) => {
+      await markInvitationAccepted(workerId, i.opportunityId);
       const owners = await db.execute(sql`select user_id from business_members where business_id = ${o.o.businessId}`);
       for (const r of owners.rows as { user_id: string }[]) await notify(r.user_id, "application_new", "New application", `${w.fullName} applied to “${o.o.title}”`, `/business/opportunities/${o.o.id}`);
       return a;
@@ -88,6 +90,9 @@ async function transition(appId: string, actorId: string, to: Status, side: "wor
     if (to === "accepted") {
       const [{ n }] = await tx.select({ n: sql<number>`count(*)::int` }).from(applications).where(and(eq(applications.opportunityId, row.o.id), eq(applications.status, "accepted")));
       if (n >= row.o.workersNeeded) await tx.update(opportunities).set({ status: "filled", updatedAt: new Date() }).where(eq(opportunities.id, row.o.id));
+      // Accepting an offer creates the assignment. Agreed pay = the worker's proposed rate if given, else the posted minimum.
+      const agreed = row.o.payType === "hourly" && row.a.proposedRateCents ? row.a.proposedRateCents : row.o.payMinCents;
+      await tx.insert(assignments).values({ applicationId: appId, opportunityId: row.o.id, businessId: row.o.businessId, workerId: row.a.workerId, payType: row.o.payType, agreedCents: agreed, currency: row.o.currency, startDate: row.o.startDate, endDate: row.o.endDate });
     }
     await audit(actorId, `application.${to}`, "application", appId, { from: row.a.status }, tx);
   });
@@ -115,7 +120,7 @@ export async function saveBusinessNote(userId: string, appId: string, note: stri
 }
 
 export async function listWorkerApplications(workerId: string) {
-  return db.select({ a: applications, title: opportunities.title, oppId: opportunities.id, businessName: businesses.name })
+  return db.select({ a: applications, title: opportunities.title, oppId: opportunities.id, businessName: businesses.name, businessId: businesses.id })
     .from(applications).innerJoin(opportunities, eq(opportunities.id, applications.opportunityId)).innerJoin(businesses, eq(businesses.id, opportunities.businessId))
     .where(eq(applications.workerId, workerId)).orderBy(desc(applications.updatedAt));
 }
