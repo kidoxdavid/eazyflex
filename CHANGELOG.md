@@ -1,5 +1,13 @@
 # Changelog
-## Unreleased — Pre-launch hardening
+## Unreleased — Remaining pre-launch gaps
+- **Fixed a defect that broke every fresh clone and CI:** `.gitignore`'s bare `coverage` rule had silently excluded `src/server/coverage/`, `src/app/worker/coverage/` and `src/app/business/opportunities/[id]/coverage/` from git. Found by the first real GitHub CI run; the fixed commit passes all CI jobs.
+- Error monitoring (structured logs, scrubbing, Sentry-compatible reporter, `onRequestError`, request ids), `/api/health` and `/api/ready`.
+- Backup/restore: `backup.sh`, `restore-test.sh`, `restore-drill.sh`, deletion ledger + re-apply scripts, retention job; CI `restore-drill` job. Migration `0007_deletion_ledger`.
+- Malware scanning via clamd (fail closed) and an S3-compatible storage driver.
+- Static authorisation-coverage tests; moved the recovery-code cookie hand-off out of a `"use server"` file (anything exported from one is a public endpoint).
+- RUNBOOK, THREAT_MODEL, LAUNCH_CHECKLIST.
+
+## Pre-launch hardening
 - Nonce-based CSP and extra security headers; `__Host-` session cookie; 8 h admin sessions; admin TOTP 2FA (recovery codes, replay protection, enforced on every admin request, super-admin reset); data export and account deletion; failed-attempt-only throttles; registration rate limit. Migration `0006_hardening`.
 - Accessibility: axe audit tooling (0 violations on 98 page views), keyboard checks, contrast token fix, keyboard-reachable scroll regions, focus ring on time inputs, focusable `<main>`. See `ACCESSIBILITY.md`.
 - CI workflow (`.github/workflows/ci.yml`) and `scripts/e2e.sh`; Dependabot config.

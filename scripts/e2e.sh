@@ -7,8 +7,13 @@ PORT="${E2E_PORT:-3100}"; export BASE_URL="http://localhost:${PORT}"
 export APP_SECRET="${APP_SECRET:-ci-secret-0123456789-abcdefghijklmnopqrstuvwxyz}"
 export APP_URL="${BASE_URL}"
 STORAGE_DIR="$(mktemp -d)"; export STORAGE_DIR
-cleanup() { [ -n "${SERVER_PID:-}" ] && kill "$SERVER_PID" 2>/dev/null || true; rm -rf "$STORAGE_DIR"; }
+cleanup() { [ -n "${SERVER_PID:-}" ] && kill "$SERVER_PID" 2>/dev/null || true; [ -n "${CLAMD_PID:-}" ] && kill "$CLAMD_PID" 2>/dev/null || true; rm -rf "$STORAGE_DIR"; }
 trap cleanup EXIT
+
+# Production mode requires malware scanning for uploads (fail closed), so run a clamd TEST DOUBLE that speaks the real protocol.
+export SCAN_DRIVER=clamav CLAMD_HOST=127.0.0.1 CLAMD_PORT="${CLAMD_PORT:-3310}"
+node scripts/fake-clamd.mjs >"${STORAGE_DIR}/clamd.log" 2>&1 &
+CLAMD_PID=$!
 
 npm run build
 npm run db:reset >/dev/null && npm run db:seed >/dev/null

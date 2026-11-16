@@ -76,3 +76,33 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: accessibility-audit, path: docs/accessibility-audit.json, if-no-files-found: ignore }
+
+  restore-drill:
+    name: Backup, restore and erasure-survival drill
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: verify
+    env:
+      ADMIN_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
+      - run: npm ci
+      - name: Install PostgreSQL 16 client tools (must match the server's major version)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-16
+          echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+      - run: PGPASSWORD=postgres psql -h localhost -U postgres -c "create database eazyflex"
+      - run: npm run db:migrate && npm run db:seed
+      - run: ./scripts/restore-drill.sh

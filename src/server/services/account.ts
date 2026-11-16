@@ -107,6 +107,17 @@ export async function deleteAccount(userId: string, password: string, confirm: s
   const blockers = await deletionBlockers(userId);
   if (blockers.length) throw new ServiceError(blockers.join(" "));
 
+  await anonymiseUser(userId, "self_service");
+}
+
+/**
+ * The erasure itself (no password/blocker checks — callers decide that). Also used by scripts/reapply-deletions.ts after restoring a
+ * backup, so it must be idempotent for an already-deleted user.
+ */
+export async function anonymiseUser(userId: string, source: "self_service" | "restore_reapply") {
+  const [u] = await db.select().from(t.users).where(eq(t.users.id, userId)).limit(1);
+  if (!u) { await db.insert(t.deletionLedger).values({ userId, source }).onConflictDoNothing(); return false; } // person not present in this (older) database: just record the erasure
+  if (u.status === "deleted") { await db.insert(t.deletionLedger).values({ userId, source }).onConflictDoNothing(); return false; }
   const myFiles = await db.select({ key: t.files.storageKey }).from(t.files).where(eq(t.files.uploaderId, userId));
   const newHash = await hashPassword(randomBytes(32).toString("hex"));
   const oldEmail = u.email;
@@ -140,7 +151,9 @@ export async function deleteAccount(userId: string, password: string, confirm: s
     for (const tbl of [t.notifications, t.notificationPrefs, t.sessions, t.authTokens, t.verifications, t.mfaRecoveryCodes] as const) await tx.delete(tbl).where(eq((tbl as any).userId, userId));
     await tx.delete(t.emailOutbox).where(eq(t.emailOutbox.toEmail, oldEmail));
     await tx.update(t.users).set({ email: `deleted+${userId}@deleted.invalid`, fullName: "Deleted", phone: null, passwordHash: newHash, status: "deleted", deletedAt: new Date(), emailVerifiedAt: null, totpSecretEnc: null, totpEnabledAt: null, totpLastStep: null, updatedAt: new Date() }).where(eq(t.users.id, userId));
-    await audit(userId, "account.deleted", "user", userId, { kind: u.kind }, tx);
+    await audit(userId, "account.deleted", "user", userId, { kind: u.kind, source }, tx);
+    await tx.insert(t.deletionLedger).values({ userId, source }).onConflictDoNothing();
   });
   for (const f of myFiles) await storage.remove(f.key).catch(() => {}); // after commit; orphaned blobs are harmless, rows are gone
+  return true;
 }

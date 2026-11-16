@@ -4,6 +4,7 @@ import { FileLinks, PAYSUFFIX, ReviewSection, STATUS_TONE, formatMoney } from ".
 import { businessAssignmentAction, openConversationAction, workerAssignmentAction } from "@/app/actions/collab";
 import type { getAssignment } from "@/server/services/assignments";
 import { RecurringPanel } from "./recurring-panel";
+import { uploadNotice } from "@/server/services/files";
 import type { getRecurringView } from "@/server/services/recurring";
 
 type D = Awaited<ReturnType<typeof getAssignment>>;
@@ -31,7 +32,7 @@ export function AssignmentView({ d, userId, sp, rec, canManage = true }: { d: D;
             <Field label="What are you submitting?" htmlFor="note"><Textarea id="note" name="note" required minLength={10} /></Field>
             {a.payType === "hourly" && <Field label="Hours worked (required for hourly work)" htmlFor="h"><Input id="h" name="hoursWorked" type="number" step="0.25" min="0.25" required /></Field>}
             <Field label="Link to deliverable (optional)" htmlFor="l"><Input id="l" name="link" type="url" /></Field>
-            <Field label="Attach files (optional)" htmlFor="fl" hint="Up to 3 files: pdf, png, jpg, docx, xlsx, csv, txt; 10 MB each. Files are not virus-scanned yet."><input id="fl" name="files" type="file" multiple className="block text-sm" accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.csv,.txt" /></Field>
+            <Field label="Attach files (optional)" htmlFor="fl" hint={`Up to 3 files: pdf, png, jpg, docx, xlsx, csv, txt; 10 MB each. ${uploadNotice()}`}><input id="fl" name="files" type="file" multiple className="block text-sm" accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.csv,.txt" /></Field>
             <Button type="submit">Submit for approval</Button></form></Card>
       )}
       {!w && !rec && a.status === "submitted" && (

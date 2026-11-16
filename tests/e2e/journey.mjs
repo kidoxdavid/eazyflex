@@ -142,6 +142,10 @@ await step("leftovers: attachment upload + authenticated download, report → ad
   const fileHref = await w.locator("a:has-text('template.pdf')").first().getAttribute("href");
   const own = await w.context().request.get(BASE + fileHref); must(own.status() === 200, "owner download " + own.status());
   must((await own.headers())["content-disposition"].startsWith("attachment"), "not forced to download"); must((await own.headers())["x-content-type-options"] === "nosniff", "nosniff missing");
+  // malware is blocked before anything is stored (EICAR is the industry-standard harmless AV test string)
+  await w.fill("#body", "this one is infected"); await w.setInputFiles("input[name=files]", { name: "invoice.pdf", mimeType: "application/pdf", buffer: Buffer.concat([PDF, Buffer.from("\nX5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*")]) });
+  await w.click("button:has-text('Send')"); await w.waitForSelector("[role=alert]:has-text('appears to contain malware')"); must(!(await w.isVisible("text=this one is infected")), "infected message was stored");
+  must(await w.isVisible("text=scanned for malware before"), "upload form does not say files are scanned");
   // bad file type is refused in the UI flow
   await w.fill("#body", "and an exe"); await w.setInputFiles("input[name=files]", { name: "bad.exe", mimeType: "application/octet-stream", buffer: Buffer.from("MZ") });
   await w.click("button:has-text('Send')"); await w.waitForSelector("[role=alert]:has-text('isn’t allowed')");

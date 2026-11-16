@@ -1,5 +1,6 @@
 import { requireUser } from "@/server/auth/session";
-import { peekRecoveryCodes, ackRecoveryCodesAction } from "@/app/actions/mfa";
+import { ackRecoveryCodesAction } from "@/app/actions/mfa";
+import { peekRecoveryCodes } from "@/server/auth/recovery-handoff";
 import { Button, LinkButton } from "@/components/ui";
 export const metadata = { title: "Recovery codes", robots: { index: false } };
 export const dynamic = "force-dynamic";

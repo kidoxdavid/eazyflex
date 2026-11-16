@@ -50,6 +50,13 @@
       "when": 1794802409613,
       "tag": "0006_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794804017459,
+      "tag": "0007_deletion_ledger",
+      "breakpoints": true
     }
   ]
 }

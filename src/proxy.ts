@@ -24,10 +24,13 @@ export function proxy(request: NextRequest) {
   ].join("; ");
 
   const headers = new Headers(request.headers);
+  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  headers.set("x-request-id", requestId);
   headers.set("x-nonce", nonce);
   headers.set("content-security-policy", csp);
   const res = NextResponse.next({ request: { headers } });
   res.headers.set("content-security-policy", csp);
+  res.headers.set("x-request-id", requestId);
   return res;
 }
 

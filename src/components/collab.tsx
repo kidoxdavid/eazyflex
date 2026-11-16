@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge, Button, Card, EmptyState, Field, Input, Select, Textarea } from "./ui";
 import { formatMoney } from "@/server/services/opportunities";
+import { uploadNotice } from "@/server/services/files";
 import { markNotificationsReadAction, reviewAction, sendMessageAction, reportMessageAction, reportReviewAction } from "@/app/actions/collab";
 import { db } from "@/server/db/client";
 import { notifications } from "@/server/db/schema";
@@ -37,7 +38,7 @@ export function Thread({ conv, userId }: { conv: { c: { id: string }; msgs: { id
             <p className="whitespace-pre-wrap">{m.body}</p><FileLinks items={m.attachments} /><p className={`mt-1 text-xs ${mine ? "text-white/70" : "text-muted"}`}>{m.createdAt.toLocaleString("en-CA")}</p>
             {!mine && <details className="mt-1 text-xs"><summary className="cursor-pointer text-muted">Report</summary><form action={reportMessageAction} className="mt-1 flex gap-1"><input type="hidden" name="messageId" value={m.id} /><input type="hidden" name="conversationId" value={conv.c.id} /><Input name="reason" required minLength={5} aria-label="Reason" className="min-h-9 text-sm" /><Button variant="outline" type="submit" className="min-h-9 px-3">Send</Button></form></details>}
           </div>); })}</div>
-      <form action={sendMessageAction} encType="multipart/form-data" className="mt-4 space-y-2"><input type="hidden" name="conversationId" value={conv.c.id} /><label className="sr-only" htmlFor="body">Message</label><Textarea id="body" name="body" required maxLength={4000} rows={3} placeholder="Write a message…" /><label className="block text-xs text-muted">Attach up to 3 files (pdf, png, jpg, docx, xlsx, csv, txt; 10 MB each). Files are not virus-scanned yet — only open files you trust.<input name="files" type="file" multiple className="mt-1 block text-sm" accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.csv,.txt" /></label><Button type="submit">Send</Button></form>
+      <form action={sendMessageAction} encType="multipart/form-data" className="mt-4 space-y-2"><input type="hidden" name="conversationId" value={conv.c.id} /><label className="sr-only" htmlFor="body">Message</label><Textarea id="body" name="body" required maxLength={4000} rows={3} placeholder="Write a message…" /><label className="block text-xs text-muted">Attach up to 3 files (pdf, png, jpg, docx, xlsx, csv, txt; 10 MB each). {uploadNotice()}<input name="files" type="file" multiple className="mt-1 block text-sm" accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.csv,.txt" /></label><Button type="submit">Send</Button></form>
     </div>
   );
 }

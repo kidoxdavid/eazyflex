@@ -14,7 +14,7 @@ export function friendlyError(e: unknown): string {
   if (e instanceof ServiceError) return e.message;
   if (e instanceof ZodError) { const i = e.issues[0]; return (i.path.length ? `${String(i.path[i.path.length - 1])}: ` : "") + i.message; }
   if (e && typeof e === "object" && "digest" in e && String((e as any).digest).startsWith("NEXT_REDIRECT")) throw e;
-  console.error(e);
+  void import("@/server/monitoring").then((m) => m.captureException(e, { route: "server-action" }));
   return "Something went wrong. Please try again.";
 }
 

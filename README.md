@@ -33,10 +33,11 @@ In development emails are written to the `email_outbox` table (no delivery) and 
 | `npm run typecheck` | `tsc --noEmit` |
 | `node tests/e2e/journey.mjs` | Browser journey (Playwright) against a running app (`BASE_URL`) |
 | `npm run test:e2e` | Build, seed, start in production mode, then journey + keyboard checks + axe audit (what CI runs; needs a disposable `DATABASE_URL`) |
+| `npm run drill:restore` | Backup → erase → restore → re-apply-erasure drill on a seeded disposable DB (`DATABASE_URL`, `ADMIN_DATABASE_URL`) |
 | `node scripts/screenshots.mjs` | Regenerates `docs/screenshots/` from a running, seeded app |
 | `npm run db:generate` | New migration from schema changes (drizzle-kit) |
 
 ## Documentation
-See the `*.md` files at the repo root (plus `ACCESSIBILITY.md`): PRODUCT_OVERVIEW, PRODUCT_REQUIREMENTS, SYSTEM_ARCHITECTURE, DATABASE_SCHEMA, API_DOCUMENTATION, USER_ROLES_AND_PERMISSIONS, MARKETPLACE_WORKFLOWS, PAYMENT_ARCHITECTURE, SECURITY_AND_PRIVACY, DEPLOYMENT_GUIDE, ENVIRONMENT_VARIABLES, TESTING_GUIDE, ADMIN_GUIDE, DEVELOPMENT_ROADMAP, CHANGELOG.
+See the `*.md` files at the repo root (plus `ACCESSIBILITY.md`, `RUNBOOK.md`, `THREAT_MODEL.md`, `LAUNCH_CHECKLIST.md`): PRODUCT_OVERVIEW, PRODUCT_REQUIREMENTS, SYSTEM_ARCHITECTURE, DATABASE_SCHEMA, API_DOCUMENTATION, USER_ROLES_AND_PERMISSIONS, MARKETPLACE_WORKFLOWS, PAYMENT_ARCHITECTURE, SECURITY_AND_PRIVACY, DEPLOYMENT_GUIDE, ENVIRONMENT_VARIABLES, TESTING_GUIDE, ADMIN_GUIDE, DEVELOPMENT_ROADMAP, CHANGELOG.
 
 *This software does not provide legal, tax or employment advice. Terms and Privacy pages are draft placeholders that require legal review.*

@@ -8,3 +8,4 @@ for (const f of [".env.local"]) {
 }
 // Tests must never touch the dev database.
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL ?? "postgres://postgres@localhost:5432/eazyflex_test";
+process.env.LOG_LEVEL = "silent"; // keep test output readable; the logging test turns it on explicitly

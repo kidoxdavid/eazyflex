@@ -17,7 +17,12 @@
     "renewals:run": "tsx scripts/run-renewals.ts",
     "ci": "npm run typecheck && npm test && npm run build",
     "test:e2e": "./scripts/e2e.sh",
-    "db:demo-activity": "tsx scripts/demo-activity.ts"
+    "db:demo-activity": "tsx scripts/demo-activity.ts",
+    "retention:run": "tsx scripts/run-retention.ts",
+    "deletions:export": "tsx scripts/export-deletion-ledger.ts",
+    "deletions:reapply": "tsx scripts/reapply-deletions.ts",
+    "backup": "scripts/backup.sh",
+    "drill:restore": "./scripts/restore-drill.sh"
   },
   "repository": {
     "type": "git",
@@ -31,6 +36,7 @@
   },
   "homepage": "https://github.com/kidoxdavid/eazyflex#readme",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1169.0",
     "@fontsource-variable/figtree": "^5.3.0",
     "@fontsource-variable/fraunces": "^5.3.0",
     "argon2": "^0.45.2",

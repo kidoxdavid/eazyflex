@@ -667,3 +667,10 @@ export const mfaRecoveryCodes = pgTable("mfa_recovery_codes", {
   usedAt: timestamp("used_at", { withTimezone: true }),
   createdAt: createdAt(),
 }, (t) => [index("mfa_recovery_user_idx").on(t.userId)]);
+
+/** One row per erased person (opaque id only, no FK so it survives). Exported off-site so a restored backup can have erasures re-applied. */
+export const deletionLedger = pgTable("deletion_ledger", {
+  userId: uuid("user_id").primaryKey(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }).notNull().defaultNow(),
+  source: text("source").notNull().default("self_service"), // self_service | restore_reapply
+});
