@@ -3,7 +3,7 @@ import { requireUser } from "@/server/auth/session";
 import { getBusinessForUser } from "@/server/services/business";
 import { canBiz } from "@/server/business-rbac";
 export const dynamic = "force-dynamic";
-const nav = [{ label: "Overview", href: "/business" }, { label: "Post Work", href: "/business/post", perm: "opportunity.write" as const }, { label: "Browse Talent", href: "/business/talent" }, { label: "Shortlist", href: "/business/shortlist" }, { label: "Assignments", href: "/business/assignments" }, { label: "Messages", href: "/business/messages" }, { label: "Notifications", href: "/business/notifications" }, { label: "Team", href: "/business/team" }, { label: "Settings", href: "/business/settings" }, { label: "Business Profile", href: "/business/profile" }];
+const nav = [{ label: "Overview", href: "/business" }, { label: "Post Work", href: "/business/post", perm: "opportunity.write" as const }, { label: "Browse Talent", href: "/business/talent" }, { label: "Shortlist", href: "/business/shortlist" }, { label: "Assignments", href: "/business/assignments" }, { label: "Messages", href: "/business/messages" }, { label: "Notifications", href: "/business/notifications" }, { label: "Team", href: "/business/team" }, { label: "Settings", href: "/business/settings" }, { label: "Account & Data", href: "/business/account" }, { label: "Business Profile", href: "/business/profile" }];
 export default async function Layout({ children }: { children: React.ReactNode }) {
   const user = await requireUser("business");
   const m = await getBusinessForUser(user.id);

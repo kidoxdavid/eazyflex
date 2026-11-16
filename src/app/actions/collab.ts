@@ -73,3 +73,11 @@ export async function reportReviewAction(f: FormData) {
   const u = await requireUser(); const { reportReview } = await import("@/server/services/moderation");
   await run(() => reportReview(u.id, str(f, "reviewId") ?? "", str(f, "reason") ?? ""), `/${u.kind}/assignments/${str(f, "assignmentId")}`, "Reported. Our team will review it.");
 }
+
+export async function deleteAccountAction(f: FormData) {
+  const u = await requireUser(); const { deleteAccount } = await import("@/server/services/account"); const { destroySession } = await import("@/server/auth/session");
+  let err = "";
+  try { await deleteAccount(u.id, str(f, "password") ?? "", str(f, "confirm") ?? ""); } catch (e: any) { err = e?.message ?? "Could not delete the account"; }
+  if (err) redirect(`/${u.kind}/account?error=${encodeURIComponent(err)}`);
+  await destroySession(); redirect("/?ok=" + encodeURIComponent("Your account was deleted."));
+}

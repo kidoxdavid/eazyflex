@@ -11,6 +11,21 @@ const stamp = Date.now();
 const browser = await chromium.launch();
 const ctx = async (viewport) => { const p = await (await browser.newContext({ viewport })).newPage(); p.setDefaultTimeout(8000); return p; };
 
+// ---- admin sign-in with TOTP (the demo admins share a PUBLIC demo authenticator seed from the seed script) ----
+const DEMO_SECRET = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP";
+const b32 = (str) => { let bits = 0, v = 0; const out = []; for (const ch of str) { v = (v << 5) | "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567".indexOf(ch); bits += 5; if (bits >= 8) { out.push((v >>> (bits - 8)) & 255); bits -= 8; } } return Buffer.from(out); };
+const { createHmac } = await import("node:crypto");
+const hotpFor = (secret, counter) => { const m = Buffer.alloc(8); m.writeBigUInt64BE(BigInt(counter)); const h = createHmac("sha1", b32(secret)).update(m).digest(); const o = h[h.length - 1] & 15; return String((((h[o] & 0x7f) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3]) % 1e6).padStart(6, "0"); };
+const lastStepUsed = new Map();
+async function nextCode(email) { // each 30 s step may be used once per account (replay protection), so pick the next unused step
+  for (;;) { const cur = Math.floor(Date.now() / 30000), used = lastStepUsed.get(email) ?? 0;
+    const step = Math.max(used + 1, cur - 1); if (step <= cur + 1) { lastStepUsed.set(email, step); return hotpFor(DEMO_SECRET, step); } await new Promise((r) => setTimeout(r, 5000)); }
+}
+async function adminLogin(page, email) {
+  await page.goto(`${BASE}/sign-in`); await page.fill("#email", email); await page.fill("#password", "DemoPass2026!"); await page.click("button:has-text('Sign in')");
+  await page.waitForURL(/\/mfa/); await page.fill("#code", await nextCode(email)); await page.click("button:has-text('Verify')"); await page.waitForURL(/\/admin/);
+}
+
 // ---------- Worker ----------
 const w = await ctx({ width: 390, height: 844 }); // mobile-first
 const wEmail = `e2e.worker.${stamp}@test.example`;
@@ -144,17 +159,17 @@ await step("leftovers: attachment upload + authenticated download, report → ad
   await bubble.locator("summary:has-text('Report')").click(); await bubble.locator("input[name=reason]").fill("Test report of this message"); await bubble.locator("button:has-text('Send')").click(); await m.waitForSelector("text=Reported");
   // admin resolves it and the audit log shows the content access
   const a2 = await ctx({ width: 1280, height: 900 });
-  await a2.goto(`${BASE}/sign-in`); await a2.fill("#email", "moderator@demo.test"); await a2.fill("#password", "DemoPass2026!"); await a2.click("button:has-text('Sign in')"); await a2.waitForURL(/admin/);
+  await adminLogin(a2, "moderator@demo.test");
   await a2.goto(`${BASE}/admin/reports`); await a2.waitForSelector("text=Test report of this message");
   must((await a2.context().request.get(BASE + fileHref)).status() === 200, "moderator could not open reported attachment");
   await a2.fill("input[name=note] >> nth=0", "Reviewed, no action needed"); await a2.click("button:has-text('Dismiss') >> nth=0"); await a2.waitForSelector("text=Report resolved");
   must((await a2.context().request.get(BASE + fileHref)).status() === 404, "moderator retained access after resolution");
   const sa = await ctx({ width: 1280, height: 900 });
-  await sa.goto(`${BASE}/sign-in`); await sa.fill("#email", "admin@demo.test"); await sa.fill("#password", "DemoPass2026!"); await sa.click("button:has-text('Sign in')"); await sa.waitForURL(/admin/);
+  await adminLogin(sa, "admin@demo.test");
   await sa.goto(`${BASE}/admin/audit`); must(await sa.isVisible("text=report.message_content_accessed"), "content access not audited"); must(await sa.isVisible("text=file.accessed_by_admin"), "file access not audited");
   // finance role cannot open reports
   const f = await ctx({ width: 1280, height: 900 });
-  await f.goto(`${BASE}/sign-in`); await f.fill("#email", "finance@demo.test"); await f.fill("#password", "DemoPass2026!"); await f.click("button:has-text('Sign in')"); await f.waitForURL(/admin/);
+  await adminLogin(f, "finance@demo.test");
   await f.goto(`${BASE}/admin/reports`); must(/\/admin\?error=/.test(f.url()), "finance reached reports");
   // notification settings persist
   await w.goto(`${BASE}/worker/settings`); await w.uncheck("input[name=messages]"); await w.click("button:has-text('Save')"); await w.waitForSelector("text=preferences saved");
@@ -266,6 +281,68 @@ await step("recurring: accept → cancel a session → renewal offer → worker 
   await p.reload(); await p.waitForSelector("text=Reviews"); must(!(await p.isVisible("button:has-text('Record session')")), "sessions still actionable after the term ended");
   await p.close(); await b.close();
 });
+await step("hardening: CSP with nonce, security headers, __Host- cookie, no CSP violations in the browser", async () => {
+  const r = await fetch(BASE + "/"); const csp = r.headers.get("content-security-policy") ?? "";
+  must(/script-src 'self' 'nonce-[A-Za-z0-9+/=]+' 'strict-dynamic'/.test(csp), "script-src nonce policy missing: " + csp);
+  must(!/script-src[^;]*'unsafe-inline'/.test(csp) && !/script-src[^;]*'unsafe-eval'/.test(csp), "script-src allows unsafe-inline/eval");
+  for (const d of ["object-src 'none'", "frame-ancestors 'none'", "base-uri 'self'", "form-action 'self'"]) must(csp.includes(d), "CSP missing " + d);
+  must(csp !== (await fetch(BASE + "/")).headers.get("content-security-policy"), "nonce is not unique per request");
+  const h = r.headers; must(h.get("x-frame-options") === "DENY" && h.get("x-content-type-options") === "nosniff", "basic headers");
+  must(/max-age=\d+/.test(h.get("strict-transport-security") ?? ""), "HSTS missing in production"); must(h.get("cross-origin-opener-policy") === "same-origin", "COOP missing");
+  const pg = await ctx({ width: 1280, height: 900 }); const bad = [];
+  pg.on("console", (m) => { if (/content security policy|refused to/i.test(m.text())) bad.push(m.text()); }); pg.on("pageerror", (e) => bad.push(String(e)));
+  await pg.goto(BASE + "/"); await pg.goto(BASE + "/opportunities"); await pg.click("a:has-text('View & apply') >> nth=0"); await pg.waitForSelector("h1");
+  await pg.goto(`${BASE}/sign-in`); await pg.fill("#email", "owner@maple.demo.test"); await pg.fill("#password", "DemoPass2026!"); await pg.click("button:has-text('Sign in')"); await pg.waitForURL(/business/);
+  const cookies = await pg.context().cookies(); const sess = cookies.find((c) => c.name === "__Host-oh_session"); must(sess && sess.httpOnly && sess.secure && sess.path === "/", "session cookie not __Host-/HttpOnly/Secure: " + JSON.stringify(cookies.map((c) => c.name)));
+  await pg.click("a:has-text('Shared customer support desk')"); await pg.click("a:has-text('Shared coverage')"); await pg.waitForSelector("text=Required per week"); // page with inline style attributes
+  await pg.goto(`${BASE}/business/team`); await pg.waitForSelector("text=Roles");
+  must(bad.length === 0, "CSP/console violations: " + bad.slice(0, 3).join(" | ")); await pg.close();
+});
+await step("mfa: password alone is not enough; wrong code rejected; replay rejected; new admin must enrol; recovery code works once", async () => {
+  const dbq = async (q, a) => { const { default: pg } = await import(require.resolve("pg")); const c = new pg.Client({ connectionString: process.env.DATABASE_URL ?? "postgres://postgres@localhost:5432/eazyflex" }); await c.connect(); const r = await c.query(q, a); await c.end(); return r.rows; };
+  const p = await ctx({ width: 1100, height: 900 });
+  await p.goto(`${BASE}/sign-in`); await p.fill("#email", "analyst@demo.test"); await p.fill("#password", "DemoPass2026!"); await p.click("button:has-text('Sign in')"); await p.waitForURL(/\/mfa/);
+  for (const path of ["/admin", "/admin/users", "/admin/audit"]) { await p.goto(BASE + path); must(/\/mfa/.test(p.url()), path + " reachable with password only: " + p.url()); }
+  await p.fill("#code", "000000"); await p.click("button:has-text('Verify')"); await p.waitForSelector("[role=alert]:has-text('not valid')");
+  const code = await nextCode("analyst@demo.test"); await p.fill("#code", code); await p.click("button:has-text('Verify')"); await p.waitForURL(/\/admin/);
+  const p2 = await ctx({ width: 1100, height: 900 }); // same code, second session: replay must fail
+  await p2.goto(`${BASE}/sign-in`); await p2.fill("#email", "analyst@demo.test"); await p2.fill("#password", "DemoPass2026!"); await p2.click("button:has-text('Sign in')"); await p2.waitForURL(/\/mfa/);
+  await p2.fill("#code", code); await p2.click("button:has-text('Verify')"); await p2.waitForSelector("[role=alert]:has-text('already used')"); await p2.close();
+  // brand-new admin without 2FA is forced through enrolment
+  const email = `enroll.${stamp}@demo.test`; const [src] = await dbq("select password_hash from users where email='analyst@demo.test'");
+  await dbq("insert into users (email, password_hash, kind, admin_role, full_name, email_verified_at, is_demo) values ($1,$2,'admin','read_only_analyst','Enrol Test', now(), true)", [email, src.password_hash]);
+  const e = await ctx({ width: 1100, height: 1000 });
+  await e.goto(`${BASE}/sign-in`); await e.fill("#email", email); await e.fill("#password", "DemoPass2026!"); await e.click("button:has-text('Sign in')"); await e.waitForURL(/\/mfa/);
+  await e.waitForSelector("img[alt*='QR']"); const secret = (await e.textContent("code")).trim(); must(/^[A-Z2-7]{32}$/.test(secret), "no secret shown: " + secret);
+  must(!(await e.isVisible("text=Skip for now")), "enrolment skippable while enforcement is required");
+  await e.goto(`${BASE}/admin`); must(/\/mfa/.test(e.url()), "unenrolled admin reached /admin");
+  await e.fill("#code", "123456"); await e.click("button:has-text('Turn on')"); await e.waitForSelector("[role=alert]:has-text('not valid')");
+  await e.fill("#code", hotpFor(secret, Math.floor(Date.now() / 30000))); await e.click("button:has-text('Turn on')"); await e.waitForURL(/recovery-codes/);
+  const codes = await e.locator("ul.font-mono li").allTextContents(); must(codes.length === 8, "expected 8 recovery codes, got " + codes.length);
+  await e.click("button:has-text('saved them')"); await e.waitForURL(/\/admin/);
+  await e.goto(`${BASE}/mfa/recovery-codes`); must(await e.isVisible("text=already shown"), "recovery codes still displayable after acknowledging"); await e.goto(`${BASE}/admin`);
+  must((await dbq("select totp_secret_enc from users where email=$1", [email]))[0].totp_secret_enc.startsWith("v1."), "secret not stored encrypted");
+  const e2 = await ctx({ width: 1100, height: 900 });
+  await e2.goto(`${BASE}/sign-in`); await e2.fill("#email", email); await e2.fill("#password", "DemoPass2026!"); await e2.click("button:has-text('Sign in')"); await e2.waitForURL(/\/mfa/);
+  await e2.fill("#code", codes[0]); await e2.click("button:has-text('Verify')"); await e2.waitForURL(/\/admin/);
+  const e3 = await ctx({ width: 1100, height: 900 });
+  await e3.goto(`${BASE}/sign-in`); await e3.fill("#email", email); await e3.fill("#password", "DemoPass2026!"); await e3.click("button:has-text('Sign in')"); await e3.waitForURL(/\/mfa/);
+  await e3.fill("#code", codes[0]); await e3.click("button:has-text('Verify')"); await e3.waitForSelector("[role=alert]:has-text('already used')");
+  for (const x of [p, e, e2, e3]) await x.close();
+});
+await step("account: download my data; delete my account; cannot sign in afterwards", async () => {
+  const p = await ctx({ width: 1100, height: 900 });
+  await p.goto(`${BASE}/sign-in`); await p.fill("#email", "jordan@demo.test"); await p.fill("#password", "DemoPass2026!"); await p.click("button:has-text('Sign in')"); await p.waitForURL(/worker/);
+  await p.goto(`${BASE}/worker/account`); await p.waitForSelector("text=Download your data");
+  const [dl] = await Promise.all([p.waitForEvent("download"), p.click("button:has-text('Download my data')")]);
+  must(/openhour-data-export\.json/.test(dl.suggestedFilename()), "unexpected filename"); const txt = require("node:fs").readFileSync(await dl.path(), "utf8"); const data = JSON.parse(txt);
+  must(data.account.email === "jordan@demo.test" && data.worker.profile.headline, "export missing own data"); must(!/argon2|passwordHash|tokenHash|totp/i.test(txt), "export leaks secrets");
+  await p.fill("#dpw", "wrong-password"); await p.fill("#dc", "DELETE"); await p.click("button:has-text('Permanently delete')"); await p.waitForSelector("[role=alert]:has-text('Incorrect password')");
+  await p.fill("#dpw", "DemoPass2026!"); await p.fill("#dc", "DELETE"); await p.click("button:has-text('Permanently delete')"); await p.waitForURL((u) => u.pathname === "/"); await p.waitForSelector("text=Your account was deleted");
+  await p.goto(`${BASE}/worker`); must(/sign-in/.test(p.url()), "still signed in after deletion");
+  await p.fill("#email", "jordan@demo.test"); await p.fill("#password", "DemoPass2026!"); await p.click("button:has-text('Sign in')"); await p.waitForSelector("[role=alert]:has-text('Incorrect')");
+  await p.close();
+});
 await step("business: talent directory hides contact details", async () => {
   await b.goto(`${BASE}/business/talent`); const t = await b.textContent("main");
   must(!t.includes("@"), "an email address appears in the talent directory");
@@ -278,7 +355,7 @@ await step("business: cannot open another business's opportunity", async () => {
 // ---------- Admin ----------
 const a = await ctx({ width: 1280, height: 900 });
 await step("admin: dashboard shows live counts", async () => {
-  await a.goto(`${BASE}/sign-in`); await a.fill("#email", "admin@demo.test"); await a.fill("#password", "DemoPass2026!"); await a.click("button:has-text('Sign in')"); await a.waitForURL(/admin/);
+  await adminLogin(a, "admin@demo.test");
   must(await a.isVisible("text=Registered workers"), "dashboard missing"); must(await a.isVisible("text=demo accounts present"), "demo label missing");
 });
 await step("admin: suspend then reactivate requires reason and is audit-logged", async () => {
@@ -290,7 +367,7 @@ await step("admin: suspend then reactivate requires reason and is audit-logged",
 });
 await step("admin: finance-only role cannot reach user management", async () => {
   const f = await ctx({ width: 1280, height: 900 });
-  await f.goto(`${BASE}/sign-in`); await f.fill("#email", "finance@demo.test"); await f.fill("#password", "DemoPass2026!"); await f.click("button:has-text('Sign in')"); await f.waitForURL(/admin/);
+  await adminLogin(f, "finance@demo.test");
   const nav = await f.textContent("nav[aria-label*=Admin]"); must(!nav.includes("Users"), "Users link shown to finance role");
   await f.goto(`${BASE}/admin/users`); must(/\/admin\?error=/.test(f.url()), "finance admin was not redirected: " + f.url());
   await f.waitForSelector("[role=alert]:has-text('do not have permission')");

@@ -14,7 +14,7 @@
   --surface: #ffffff;
   --border: #ddd8cb;
   --text: #252b28;           /* charcoal */
-  --muted: #5f6a64;          /* darkened from #78817B for AA contrast on ivory/white */
+  --muted: #56605a;          /* darkened from the brief's #78817B: >= 5.2:1 on white, ivory and sage backgrounds (WCAG AA) */
   --success: #1f7a4d;
   --warning: #9a5b00;
   --error: #b3261e;
@@ -47,6 +47,8 @@
 body { background: var(--background); color: var(--text); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
 h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.01em; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+/* Chromium drops :focus-visible when Tab moves between the hour/minute/AM-PM segments of a time input; keep our ring on throughout. */
+input[type="time"]:focus-within, input[type="date"]:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
 a { text-underline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 .skip-link { position: absolute; left: -9999px; top: 0; background: var(--primary); color: #fff; padding: .75rem 1rem; z-index: 100; }

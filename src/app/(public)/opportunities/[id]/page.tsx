@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Badge, Button, Card, Field, Flash, Input, LinkButton, Textarea } from "@/components/ui";
@@ -37,6 +38,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const match = user?.kind === "worker" && o.status === "published" ? await matchWorkerToOpportunity(user.id, id).catch(() => null) : null;
   const where = o.arrangement === "remote" ? "Remote" : `${o.arrangement === "hybrid" ? "Hybrid" : "On-site"} — ${d.areaName ?? "area to be confirmed"}${o.locationNote ? ` (${o.locationNote})` : ""}`;
 
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const jsonLd = o.status === "published" ? {
     "@context": "https://schema.org", "@type": "JobPosting", title: o.title, description: o.description, datePosted: o.publishedAt?.toISOString().slice(0, 10),
     employmentType: o.engagementType === "flexible_shift" ? "PART_TIME" : "CONTRACTOR", hiringOrganization: { "@type": "Organization", name: d.business.name },
@@ -46,7 +48,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      {jsonLd && o.payType === "hourly" && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />}
+      {jsonLd && o.payType === "hourly" && <script type="application/ld+json" nonce={nonce} dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />}
       <Link href="/opportunities" className="text-sm font-medium text-primary underline">← All opportunities</Link>
       <Flash error={sp.error} ok={sp.ok} />
       <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_340px]">

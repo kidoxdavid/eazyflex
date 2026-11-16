@@ -11,3 +11,10 @@ export async function rateLimit(key: string, limit: number, windowSeconds: numbe
     RETURNING count`);
   return Number((res.rows[0] as { count: number }).count) <= limit;
 }
+
+/** Read-only: is this key still under its limit? (Does not count an attempt.) Pair with rateLimit() on *failures* only. */
+export async function rateLimitAllowed(key: string, limit: number, windowSeconds: number): Promise<boolean> {
+  const res = await db.execute(sql`select count from rate_limits where key = ${key} and window_start > now() - make_interval(secs => ${windowSeconds})`);
+  const row = res.rows[0] as { count: number } | undefined;
+  return !row || Number(row.count) < limit;
+}

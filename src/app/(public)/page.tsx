@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { brand } from "@/lib/brand";
-import { Card, LinkButton, Badge } from "@/components/ui";
+import { Card, LinkButton, Badge, Flash } from "@/components/ui";
 import { SearchBar } from "@/components/search-bar";
 import { OpportunityCard } from "@/components/opportunity-card";
 import { getCategories } from "@/server/services/catalog";
@@ -15,10 +15,12 @@ const WAYS = [
   ["Packaged services", "Offer a service you can deliver well and let businesses book it. Coming in a later release."],
 ];
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
+  const sp = await searchParams;
   const [cats, featured] = await Promise.all([getCategories(), searchOpportunities({ pageSize: 6 })]);
   return (
     <>
+      {(sp.ok || sp.error) && <div className="mx-auto max-w-6xl px-4 pt-6"><Flash ok={sp.ok} error={sp.error} /></div>}
       <section className="bg-gradient-to-b from-secondary/70 to-background">
         <div className="mx-auto max-w-6xl px-4 pb-10 pt-14 sm:pt-20">
           <h1 className="max-w-3xl text-4xl font-semibold leading-tight sm:text-6xl">{brand.tagline}</h1>

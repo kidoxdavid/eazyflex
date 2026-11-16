@@ -22,7 +22,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ o
           <Card className="mt-3"><form action={categoryAction} className="flex flex-wrap items-end gap-2"><Field label="New category" htmlFor="nc"><Input id="nc" name="name" required /></Field><label className="flex min-h-11 items-center gap-1 text-xs"><input type="checkbox" name="requiresApproval" className="size-4" />needs approval</label><Button type="submit">Add</Button></form></Card></div>
         <div><h2 className="mb-3 text-xl font-semibold">Skills ({sk.length})</h2>
           <Card className="mb-3"><form action={skillAction} className="flex flex-wrap items-end gap-2"><Field label="New skill" htmlFor="ns"><Input id="ns" name="name" required /></Field><Field label="Category" htmlFor="sc"><Select id="sc" name="categoryId"><option value="">None</option>{cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></Field><Button type="submit">Add</Button></form></Card>
-          <div className="flex max-h-[32rem] flex-wrap gap-1.5 overflow-y-auto">{sk.map((s) => <Badge key={s.id}>{s.name}</Badge>)}</div></div>
+          <div className="flex max-h-[32rem] flex-wrap gap-1.5 overflow-y-auto" tabIndex={0} role="region" aria-label="All skills (scrollable)">{sk.map((s) => <Badge key={s.id}>{s.name}</Badge>)}</div></div>
       </div>
     </>
   );

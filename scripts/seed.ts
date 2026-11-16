@@ -4,9 +4,12 @@ import { db, getPool } from "../src/server/db/client";
 import * as s from "../src/server/db/schema";
 import { seedReference } from "../src/server/db/seed-data";
 import { hashPassword } from "../src/server/auth/password";
+import { encryptSecret } from "../src/server/crypto";
 
 if (process.env.NODE_ENV === "production") throw new Error("Refusing to seed demo data in production");
 export const DEMO_PASSWORD = "DemoPass2026!";
+// PUBLIC demo-only authenticator seed (add it to any authenticator app to sign in as a demo admin). Never used outside seeded demo accounts.
+export const DEMO_TOTP_SECRET = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP";
 
 async function main() {
   await seedReference();
@@ -20,8 +23,10 @@ async function main() {
     ?? (await db.select().from(s.users).where(eq(s.users.email, email)))[0];
 
   // Admins (one per role so permissions can be exercised)
-  for (const [email, name, role] of [["admin@demo.test", "Demo Super Admin", "super_admin"], ["moderator@demo.test", "Demo Moderator", "content_moderator"], ["verifier@demo.test", "Demo Verification Officer", "verification_officer"], ["finance@demo.test", "Demo Finance Admin", "finance_admin"], ["analyst@demo.test", "Demo Analyst", "read_only_analyst"]] as const)
-    await mk(email, name, "admin", role);
+  for (const [email, name, role] of [["admin@demo.test", "Demo Super Admin", "super_admin"], ["moderator@demo.test", "Demo Moderator", "content_moderator"], ["verifier@demo.test", "Demo Verification Officer", "verification_officer"], ["finance@demo.test", "Demo Finance Admin", "finance_admin"], ["analyst@demo.test", "Demo Analyst", "read_only_analyst"]] as const) {
+    const a = await mk(email, name, "admin", role);
+    await db.update(s.users).set({ totpSecretEnc: encryptSecret(DEMO_TOTP_SECRET), totpEnabledAt: new Date() }).where(eq(s.users.id, a.id));
+  }
 
   // Workers (fictional)
   const W = [
@@ -98,7 +103,7 @@ async function main() {
     await db.insert(s.opportunitySkills).values({ opportunityId: desk.id, skillId: sk["Customer support"], mandatory: true });
     await db.insert(s.opportunitySchedules).values([1, 2, 3, 4, 5].map((weekday) => ({ opportunityId: desk.id, weekday, startMinute: 540, endMinute: 900 })));
   }
-  console.log("Seeded. Demo password for all demo accounts:", DEMO_PASSWORD);
+  console.log("Seeded. Demo password for all demo accounts:", DEMO_PASSWORD, "| demo admin authenticator key:", DEMO_TOTP_SECRET);
   await getPool().end();
 }
 main().catch((e) => { console.error(e); process.exit(1); });

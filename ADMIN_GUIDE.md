@@ -1,5 +1,5 @@
 # Admin guide
-Sign in at `/sign-in` with an admin account (demo: `admin@demo.test`). The sidebar shows only sections your role permits; direct URLs you lack permission for redirect to the dashboard with an error.
+Sign in at `/sign-in` with an admin account (demo: `admin@demo.test`, password `DemoPass2026!`). After the password you must enter a 6-digit code from an authenticator app (or a recovery code). **Demo admins share a public demo authenticator key `JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP`** — add it to any authenticator app to sign in. A new admin is walked through enrolment (QR code, then 8 recovery codes shown once). Lost device: a super administrator opens **Users** and chooses "Reset two-factor authentication"; the admin enrols again at next sign-in. The sidebar shows only sections your role permits; direct URLs you lack permission for redirect to the dashboard with an error.
 - **Users:** search; suspend/restrict/reactivate with a mandatory reason (sessions revoked; written to audit and notes).
 - **Opportunities:** approve/reject pending (rejection reason is shown to the business), pause, close, feature.
 - **Verification:** business (and future) queue: verify / needs review / reject. Badges appear only after "verified".

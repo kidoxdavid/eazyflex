@@ -61,5 +61,5 @@ export function SiteFooter() {
 }
 
 export async function PublicShell({ children }: { children: React.ReactNode }) {
-  return <><SiteHeader /><main id="main">{children}</main><SiteFooter /></>;
+  return <><SiteHeader /><main id="main" tabIndex={-1}>{children}</main><SiteFooter /></>;
 }

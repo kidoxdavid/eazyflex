@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   pgTable, pgEnum, uuid, text, timestamp, integer, boolean, date, jsonb, numeric,
-  smallint, uniqueIndex, index, primaryKey, customType,
+  smallint, uniqueIndex, index, primaryKey, customType, bigint,
 } from "drizzle-orm/pg-core";
 
 const id = () => uuid("id").primaryKey().default(sql`gen_random_uuid()`);
@@ -52,6 +52,10 @@ export const users = pgTable("users", {
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   isDemo: boolean("is_demo").notNull().default(false),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+  totpSecretEnc: text("totp_secret_enc"), // AES-256-GCM encrypted; never returned to clients after enrolment
+  totpEnabledAt: timestamp("totp_enabled_at", { withTimezone: true }),
+  totpLastStep: bigint("totp_last_step", { mode: "number" }), // replay protection: last accepted 30 s step
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }, (t) => [uniqueIndex("users_email_uq").on(sql`lower(${t.email})`), index("users_kind_idx").on(t.kind, t.status)]);
@@ -62,6 +66,7 @@ export const sessions = pgTable("sessions", {
   tokenHash: text("token_hash").notNull().unique(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   userAgent: text("user_agent"),
+  mfaVerifiedAt: timestamp("mfa_verified_at", { withTimezone: true }),
   createdAt: createdAt(),
 }, (t) => [index("sessions_user_idx").on(t.userId)]);
 
@@ -653,3 +658,12 @@ export const renewalOffers = pgTable("renewal_offers", {
   createdAt: createdAt(),
   respondedAt: timestamp("responded_at", { withTimezone: true }),
 }, (t) => [uniqueIndex("renewal_one_pending_uq").on(t.assignmentId).where(sql`status = 'pending'`)]);
+
+// ---------- Hardening ----------
+export const mfaRecoveryCodes = pgTable("mfa_recovery_codes", {
+  id: id(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  codeHash: text("code_hash").notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [index("mfa_recovery_user_idx").on(t.userId)]);

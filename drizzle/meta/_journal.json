@@ -43,6 +43,13 @@
       "when": 1794801312534,
       "tag": "0005_team_and_renewals",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794802409613,
+      "tag": "0006_hardening",
+      "breakpoints": true
     }
   ]
 }

@@ -5,7 +5,7 @@ import path from "node:path";
 export interface Storage { put(key: string, data: Buffer): Promise<void>; get(key: string): Promise<Buffer>; remove(key: string): Promise<void>; }
 
 class LocalStorage implements Storage {
-  private root = path.resolve(/* turbopackIgnore: true */ process.env.STORAGE_DIR ?? "./.storage");
+  private get root() { return path.resolve(/* turbopackIgnore: true */ process.env.STORAGE_DIR ?? "./.storage"); } // read per call so configuration changes apply
   private p(key: string) { if (!/^[a-f0-9-]{36}$/.test(key)) throw new Error("bad storage key"); return path.join(this.root, key); }
   async put(key: string, data: Buffer) { await fs.mkdir(this.root, { recursive: true }); await fs.writeFile(this.p(key), data, { mode: 0o600 }); }
   async get(key: string) { return fs.readFile(this.p(key)); }

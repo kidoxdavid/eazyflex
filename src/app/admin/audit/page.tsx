@@ -10,7 +10,7 @@ export default async function Page() {
   return (
     <>
       <PageHeader title="Audit log" subtitle="Append-only. Database triggers block edits and deletions." />
-      <div className="overflow-x-auto rounded-xl border border-border bg-surface"><table className="w-full text-left text-sm"><thead className="bg-secondary/50"><tr><th className="p-2">Time</th><th className="p-2">Actor</th><th className="p-2">Action</th><th className="p-2">Entity</th></tr></thead>
+      <div className="overflow-x-auto rounded-xl border border-border bg-surface" tabIndex={0} role="region" aria-label="Audit log table (scrollable)"><table className="w-full text-left text-sm"><thead className="bg-secondary/50"><tr><th className="p-2">Time</th><th className="p-2">Actor</th><th className="p-2">Action</th><th className="p-2">Entity</th></tr></thead>
         <tbody>{rows.map(({ a, actorEmail }) => <tr key={a.id} className="border-t border-border"><td className="p-2 whitespace-nowrap">{a.createdAt.toLocaleString("en-CA")}</td><td className="p-2">{actorEmail ?? "system"}</td><td className="p-2 font-mono text-xs">{a.action}</td><td className="p-2">{a.entityType} {a.entityId?.slice(0, 8)}</td></tr>)}</tbody></table></div>
     </>
   );

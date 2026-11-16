@@ -19,6 +19,8 @@ npm run dev                           # http://localhost:3000
 
 Reset to a clean database: `npm run db:reset && npm run db:seed` (refuses to run when `NODE_ENV=production`).
 
+Demo admin accounts also require a code from an authenticator: add the **public demo key** `JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP` to any authenticator app (or compute it — the e2e tests do). To fill the app with realistic in-flight activity for demos/screenshots: `npm run db:demo-activity` after seeding.
+
 Demo accounts (password `DemoPass2026!`, all flagged `is_demo`, fictional): `priya@demo.test` (worker), `owner@maple.demo.test` (business), `admin@demo.test` (super admin), plus `moderator@`, `verifier@`, `finance@`, `analyst@demo.test` for per-role permission checks.
 
 In development emails are written to the `email_outbox` table (no delivery) and visible at `/dev/outbox` (disabled in production).
@@ -30,9 +32,11 @@ In development emails are written to the `email_outbox` table (no delivery) and 
 | `npm test` | Vitest: unit + integration tests against the **test** database (it is dropped and recreated) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `node tests/e2e/journey.mjs` | Browser journey (Playwright) against a running app (`BASE_URL`) |
+| `npm run test:e2e` | Build, seed, start in production mode, then journey + keyboard checks + axe audit (what CI runs; needs a disposable `DATABASE_URL`) |
+| `node scripts/screenshots.mjs` | Regenerates `docs/screenshots/` from a running, seeded app |
 | `npm run db:generate` | New migration from schema changes (drizzle-kit) |
 
 ## Documentation
-See the `*.md` files at the repo root: PRODUCT_OVERVIEW, PRODUCT_REQUIREMENTS, SYSTEM_ARCHITECTURE, DATABASE_SCHEMA, API_DOCUMENTATION, USER_ROLES_AND_PERMISSIONS, MARKETPLACE_WORKFLOWS, PAYMENT_ARCHITECTURE, SECURITY_AND_PRIVACY, DEPLOYMENT_GUIDE, ENVIRONMENT_VARIABLES, TESTING_GUIDE, ADMIN_GUIDE, DEVELOPMENT_ROADMAP, CHANGELOG.
+See the `*.md` files at the repo root (plus `ACCESSIBILITY.md`): PRODUCT_OVERVIEW, PRODUCT_REQUIREMENTS, SYSTEM_ARCHITECTURE, DATABASE_SCHEMA, API_DOCUMENTATION, USER_ROLES_AND_PERMISSIONS, MARKETPLACE_WORKFLOWS, PAYMENT_ARCHITECTURE, SECURITY_AND_PRIVACY, DEPLOYMENT_GUIDE, ENVIRONMENT_VARIABLES, TESTING_GUIDE, ADMIN_GUIDE, DEVELOPMENT_ROADMAP, CHANGELOG.
 
 *This software does not provide legal, tax or employment advice. Terms and Privacy pages are draft placeholders that require legal review.*

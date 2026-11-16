@@ -3,17 +3,20 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { run, str, bool } from "./util";
 import { authenticate, registerUser, requestPasswordReset, resetPassword, verifyEmail, ServiceError } from "@/server/services/identity";
+import { rateLimit } from "@/server/rate-limit";
 import { createSession, destroySession, homeFor } from "@/server/auth/session";
 
 export async function registerAction(f: FormData) {
   const kind = str(f, "kind") === "business" ? "business" : "worker";
   await run(async () => {
+    const ip = (await headers()).get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+    if (!(await rateLimit(`register-ip:${ip}`, 10, 3600))) throw new ServiceError("Too many sign-ups from this network. Try again later.", "rate_limited");
     const u = await registerUser({
       kind, fullName: str(f, "fullName"), email: str(f, "email"), password: str(f, "password"), phone: str(f, "phone") ?? "",
       city: str(f, "city") ?? "", postalPrefix: str(f, "postalPrefix") ?? "", businessName: str(f, "businessName") || undefined,
       businessKind: str(f, "businessKind") || undefined, inviteToken: str(f, "inviteToken") || undefined, acceptTerms: bool(f, "acceptTerms"),
     });
-    await createSession(u.id, (await headers()).get("user-agent"));
+    await createSession(u.id, (await headers()).get("user-agent"), { kind: u.kind });
     return kind === "worker" ? "/worker/onboarding?welcome=1" : "/business?welcome=1";
   }, `/register?type=${kind}${str(f, "inviteToken") ? `&invite=${encodeURIComponent(str(f, "inviteToken")!)}` : ""}`);
 }
@@ -24,7 +27,7 @@ export async function loginAction(f: FormData) {
     const h = await headers();
     const ip = h.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
     const u = await authenticate(str(f, "email") ?? "", str(f, "password") ?? "", ip);
-    await createSession(u.id, h.get("user-agent"));
+    await createSession(u.id, h.get("user-agent"), { kind: u.kind });
     // only same-site relative paths are allowed as redirect targets
     return next && /^\/(?!\/)[\w\-/?=&%.]*$/.test(next) ? next : homeFor(u);
   }, "/sign-in");

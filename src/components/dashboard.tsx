@@ -28,7 +28,7 @@ export async function DashboardShell({ nav, user, area, children }: { nav: NavIt
           <form action={logoutAction} className="lg:hidden"><button className="underline">Sign out</button></form>
         </div>
         {!user.emailVerifiedAt && <div role="status" className="bg-[#fbebd3] px-4 py-2 text-sm text-warning">Your email is not verified yet. Open the link we sent you to verify it — you cannot apply or be discoverable until then.</div>}
-        <main id="main" className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+        <main id="main" tabIndex={-1} className="mx-auto max-w-5xl px-4 py-8">{children}</main>
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import { authTokens, businessMembers, businesses, sessions, userConsents, users,
 import { hashPassword, verifyPassword } from "../auth/password";
 import { hashToken, newToken } from "../auth/tokens";
 import { sendEmail } from "../email";
-import { rateLimit } from "../rate-limit";
+import { rateLimit, rateLimitAllowed } from "../rate-limit";
 import { audit } from "../audit";
 import { brand } from "@/lib/brand";
 
@@ -106,11 +106,12 @@ const DUMMY_HASH = hashPassword("timing-equaliser-not-a-real-password");
 
 export async function authenticate(emailRaw: string, pw: string, ip = "unknown") {
   const email = emailRaw.trim().toLowerCase();
-  if (!(await rateLimit(`login:${email}`, 8, 900)) || !(await rateLimit(`login-ip:${ip}`, 30, 900)))
+  // Only FAILED attempts count, so many legitimate sign-ins from one network (an office, a school) never lock anyone out.
+  if (!(await rateLimitAllowed(`login:${email}`, 8, 900)) || !(await rateLimitAllowed(`login-ip:${ip}`, 30, 900)))
     throw new ServiceError("Too many attempts. Try again in a few minutes.", "rate_limited");
   const [u] = await db.select().from(users).where(sql`lower(${users.email}) = ${email}`).limit(1);
   const ok = await verifyPassword(u ? u.passwordHash : await DUMMY_HASH, pw);
-  if (!u || !ok) throw new ServiceError("Incorrect email or password", "auth");
+  if (!u || !ok) { await rateLimit(`login:${email}`, 8, 900); await rateLimit(`login-ip:${ip}`, 30, 900); throw new ServiceError("Incorrect email or password", "auth"); }
   if (u.status === "suspended" || u.status === "deleted") throw new ServiceError("This account is not active. Contact support.", "forbidden");
   await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, u.id));
   return u;

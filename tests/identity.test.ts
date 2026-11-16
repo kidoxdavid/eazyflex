@@ -59,6 +59,13 @@ describe("login and password reset", () => {
     for (let i = 0; i < 10; i++) last = await authenticate(email, "nope-nope-1", "ip-rl").catch((e) => e);
     expect(last.code).toBe("rate_limited");
   });
+  it("only failed attempts count: many successful sign-ins from one address never lock anyone out", async () => {
+    const u = await makeUser("worker");
+    for (let i = 0; i < 40; i++) await authenticate(u.email, "CorrectHorse9", "shared-office-ip");
+    expect((await authenticate(u.email, "CorrectHorse9", "shared-office-ip")).id).toBe(u.id);
+    for (let i = 0; i < 8; i++) await authenticate(u.email, "wrong-password1", "shared-office-ip").catch(() => {});
+    await expect(authenticate(u.email, "CorrectHorse9", "shared-office-ip")).rejects.toThrow(/Too many attempts/); // 8 failures lock this account for a while
+  });
   it("blocks suspended accounts", async () => {
     const u = await makeUser("worker");
     await db.update(users).set({ status: "suspended" }).where(eq(users.id, u.id));

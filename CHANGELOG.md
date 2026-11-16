@@ -1,5 +1,12 @@
 # Changelog
-## Unreleased — Team members and recurring renewals
+## Unreleased — Pre-launch hardening
+- Nonce-based CSP and extra security headers; `__Host-` session cookie; 8 h admin sessions; admin TOTP 2FA (recovery codes, replay protection, enforced on every admin request, super-admin reset); data export and account deletion; failed-attempt-only throttles; registration rate limit. Migration `0006_hardening`.
+- Accessibility: axe audit tooling (0 violations on 98 page views), keyboard checks, contrast token fix, keyboard-reachable scroll regions, focus ring on time inputs, focusable `<main>`. See `ACCESSIBILITY.md`.
+- CI workflow (`.github/workflows/ci.yml`) and `scripts/e2e.sh`; Dependabot config.
+- Fixed: login throttle counted successful sign-ins (could lock out a shared network); home page ignored flash messages (no confirmation after account deletion).
+- Demo-activity script and screenshot script; screenshots in `docs/screenshots/`.
+
+## Team members and recurring renewals
 - Business team: invitations, owner/manager/member roles enforced on all write paths, role changes, removal. Recurring assignments: dated sessions, logging/confirmation/missed/cancel, term close-out, worker-accepted renewal offers, reminder/expiry job. Migration `0005_team_and_renewals`.
 - Fixed a Phase 1 bug: the business overview always showed 0 applicants per opportunity (a correlated subquery bound to the wrong table); added regression tests.
 - 178 Vitest tests + 24-step Playwright journey.

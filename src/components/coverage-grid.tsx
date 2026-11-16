@@ -23,7 +23,7 @@ export function CoverageGrid({ required, slices, gaps, overlaps = [] }: { requir
   const hours = Array.from({ length: Math.floor((to - from) / 60) + 1 }, (_, i) => from + i * 60);
   return (
     <div>
-      <div className="overflow-x-auto"><div className="flex min-w-[640px] gap-1 pb-4" role="img" aria-label="Weekly coverage chart. A table with the same information follows.">
+      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Weekly coverage chart (scrollable)"><div className="flex min-w-[640px] gap-1 pb-4" role="img" aria-label="Weekly coverage chart. A table with the same information follows.">
         <div className="relative w-10 shrink-0" style={{ height: H + 24, paddingTop: 24 }}>{hours.map((h) => <span key={h} className="absolute right-1 text-[10px] text-muted" style={{ top: 24 + y(h) - 6 }}>{hm(h)}</span>)}</div>
         {ORDER.map((wd) => (
           <div key={wd} className="flex-1">
