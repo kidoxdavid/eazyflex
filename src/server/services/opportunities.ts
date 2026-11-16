@@ -9,8 +9,8 @@ import { ServiceError } from "./identity";
 import { canBiz, type BizPerm } from "../business-rbac";
 
 export const ENGAGEMENT_LABELS: Record<string, string> = {
-  micro_task: "Micro-task", fixed_project: "Fixed project", flexible_shift: "Flexible shift",
-  recurring: "Recurring assignment", specialist_consultation: "Specialist consultation", local_service: "Local service",
+  micro_task: "Short task", fixed_project: "Project (set fee)", flexible_shift: "Shift",
+  recurring: "Ongoing work", specialist_consultation: "Expert advice", local_service: "Local job",
 };
 export const PAY_LABELS: Record<string, string> = { hourly: "Hourly rate", fixed: "Fixed project fee", shift: "Per-shift pay", recurring: "Recurring pay" };
 export const PAY_SUFFIX: Record<string, string> = { hourly: "/hour", fixed: " fixed", shift: " per shift", recurring: " per period" };

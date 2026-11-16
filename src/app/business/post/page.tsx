@@ -9,9 +9,9 @@ import { saveOpportunityAction } from "@/app/actions/business";
 
 export const metadata = { title: "Post work" };
 const TYPES: [string, string, string][] = [
-  ["micro_task", "Micro-task", "A short task, roughly one to five hours."], ["fixed_project", "Fixed project", "Defined deliverables, a deadline and a fee."],
-  ["flexible_shift", "Flexible shift", "A scheduled period of agreed duties."], ["recurring", "Recurring assignment", "Work that repeats weekly, monthly or on a schedule."],
-  ["specialist_consultation", "Specialist consultation", "Professional help based on specific experience."], ["local_service", "Local service", "A task that needs someone on site."],
+  ["micro_task", "Short task", "A few hours of help, roughly one to five."], ["fixed_project", "Project (set fee)", "Clear deliverables, a deadline and a fee."],
+  ["flexible_shift", "Shift", "A scheduled period of agreed duties."], ["recurring", "Ongoing work", "Work that repeats weekly or monthly."],
+  ["specialist_consultation", "Expert advice", "Help from someone with specific experience."], ["local_service", "Local job", "Something that needs someone on site."],
 ];
 const PAY_OPTS: Record<string, [string, string][]> = {
   micro_task: [["hourly", "Hourly rate"], ["fixed", "Fixed fee"]], fixed_project: [["fixed", "Fixed project fee (or budget range)"]], flexible_shift: [["shift", "Pay per shift"], ["hourly", "Hourly rate"]],

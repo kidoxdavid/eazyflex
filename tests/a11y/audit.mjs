@@ -40,7 +40,7 @@ const DESKTOP = { width: 1280, height: 900 }, MOBILE = { width: 390, height: 844
 for (const [vpName, vp] of [["desktop", DESKTOP], ["mobile", MOBILE]]) {
   const anon = await session(vp);
   const oppHref = (await firstId(anon, "/opportunities", "View & apply"));
-  for (const [l, u] of [["home", "/"], ["opportunities", "/opportunities"], ["opportunity detail", oppHref], ["find work", "/find-work"], ["hire talent", "/hire-talent"], ["how it works", "/how-it-works"], ["about", "/about"], ["category page", "/work/customer-service"], ["sign in", "/sign-in"], ["register (worker)", "/register?type=worker"], ["register (business)", "/register?type=business"], ["forgot password", "/forgot-password"]]) await audit(anon, l, u, vpName);
+  for (const [l, u] of [["home", "/"], ["opportunities", "/opportunities"], ["opportunity detail", oppHref], ["find work", "/find-work"], ["hire talent", "/hire-talent"], ["how it works", "/how-it-works"], ["about", "/about"], ["help", "/help"], ["category page", "/work/customer-service"], ["sign in", "/sign-in"], ["register (worker)", "/register?type=worker"], ["register (business)", "/register?type=business"], ["forgot password", "/forgot-password"]]) await audit(anon, l, u, vpName);
   await anon.context().close();
 
   const w = await session(vp, { email: "priya@demo.test" });

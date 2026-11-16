@@ -39,7 +39,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<SP>
           <Card className="space-y-4">
             <h2 className="font-sans text-base font-semibold">Refine</h2>
             {["q", "arrangement", "area", "category"].map((k) => sp[k] ? <input key={k} type="hidden" name={k} value={sp[k]} /> : null)}
-            <label className="block text-sm font-semibold">Engagement<Select name="engagementType" defaultValue={sp.engagementType ?? ""} className="mt-1 font-normal"><option value="">Any</option>{Object.entries(ENGAGEMENT_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Select></label>
+            <label className="block text-sm font-semibold">Type of work<Select name="engagementType" defaultValue={sp.engagementType ?? ""} className="mt-1 font-normal"><option value="">Any</option>{Object.entries(ENGAGEMENT_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Select></label>
             <label className="block text-sm font-semibold">Pay basis<Select name="payType" defaultValue={sp.payType ?? ""} className="mt-1 font-normal"><option value="">Any</option>{Object.entries(PAY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Select></label>
             <label className="block text-sm font-semibold">Pay at least ($)<Input name="minPay" type="number" min="0" defaultValue={sp.minPay} className="mt-1 font-normal" /></label>
             <label className="block text-sm font-semibold">Skill<Select name="skill" defaultValue={sp.skill ?? ""} className="mt-1 font-normal"><option value="">Any</option>{skills.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></label>

@@ -24,6 +24,7 @@ await shot(anon, "02-opportunities", "/opportunities?arrangement=remote");
 const href = await anon.locator("a:has-text('View & apply')").first().getAttribute("href");
 await shot(anon, "03-opportunity-detail", href);
 await shot(anon, "04-register", "/register?type=worker");
+await shot(anon, "05-help", "/help");
 await anon.context().close();
 
 const w = await open(DESK, { email: "priya@demo.test" });

@@ -55,7 +55,7 @@ export function SiteFooter() {
         <div><Logo light /><p className="mt-3 max-w-xs text-sm text-white/80">{brand.tagline}</p><p className="mt-3 text-xs text-white/60">Launching in {brand.launchCity}, {brand.launchRegion}.</p></div>
         {col("For workers", [["Find work", "/find-work"], ["Browse opportunities", "/opportunities"], ["Create an account", "/register?type=worker"]])}
         {col("For businesses", [["Hire talent", "/hire-talent"], ["Post work", "/register?type=business"], ["How it works", "/how-it-works"]])}
-        {col("Company", [["About", "/about"], ["Trust & safety", "/about#trust"], ["Terms", "/terms"], ["Privacy", "/privacy"]])}
+        {col("Company", [["About", "/about"], ["Trust & safety", "/about#trust"], ["Help & contact", "/help"], ["Terms", "/terms"], ["Privacy", "/privacy"]])}
       </div>
       <div className="border-t border-white/15 px-4 py-4 text-center text-xs text-white/60">© {new Date().getFullYear()} {brand.name}. {brand.name} is a marketplace platform and does not provide legal, tax or employment advice.</div>
     </footer>

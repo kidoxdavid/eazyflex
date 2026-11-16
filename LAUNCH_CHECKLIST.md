@@ -26,6 +26,7 @@ Legend: ✅ done and verified here · 🟡 built, needs configuration/operation 
 - Licensed photography/brand assets; final brand name, domain and logo
 - Real customer testimonials only (none are shown today)
 - Support process: monitored inbox, response targets, escalation to admins
+- 🧑 **Replace the placeholder support address.** `brand.supportEmail` in `src/lib/brand.ts` is `support@example.com`. The public Help page (`/help`) tells people a person will read and reply, so a real, monitored inbox and someone to answer it must exist before launch. Phone support is not offered and the page says so.
 
 ## Business decisions still open
 - Payment provider/account, commission and fee schedule, tax presentation, refund/dispute policy (all of Phase 3)

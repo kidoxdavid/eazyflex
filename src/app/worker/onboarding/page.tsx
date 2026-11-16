@@ -39,6 +39,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ s
         )}
         {step > 1 && step < 5 && <div className="mt-4"><LinkButton variant="ghost" href={`/worker/onboarding?step=${step - 1}`}>← Back</LinkButton></div>}
       </Card>
+      <p className="mt-4 text-center text-sm text-muted">Not sure about something? <Link className="font-bold text-primary underline" href="/help">Talk to a person</Link>. You can skip any step and come back later.</p>
     </div>
   );
 }

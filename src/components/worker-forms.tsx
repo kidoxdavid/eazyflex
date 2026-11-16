@@ -1,12 +1,13 @@
 import { Button, Field, Input, Select, Textarea, Card } from "./ui";
 import { saveAboutAction, savePreferencesAction, saveCompensationAction, saveAvailabilityAction } from "@/app/actions/worker";
 import type { getWorkerBundle } from "@/server/services/worker";
+import { HoursPresets } from "./hours-presets";
 
 type Bundle = Awaited<ReturnType<typeof getWorkerBundle>>;
 type Ref = { id: string; name: string }[];
 type Nav = { returnTo?: string; failTo?: string };
 const Hidden = ({ returnTo, failTo }: Nav) => <>{returnTo && <input type="hidden" name="returnTo" value={returnTo} />}{failTo && <input type="hidden" name="failTo" value={failTo} />}</>;
-export const ENG = [["micro_task", "Micro-tasks"], ["fixed_project", "Fixed projects"], ["flexible_shift", "Temporary shifts"], ["recurring", "Recurring work"], ["specialist_consultation", "Consulting"], ["local_service", "Local services"]] as const;
+export const ENG = [["micro_task", "Short tasks"], ["fixed_project", "Projects with a set fee"], ["flexible_shift", "Shifts"], ["recurring", "Ongoing work"], ["specialist_consultation", "Expert advice"], ["local_service", "Local jobs"]] as const;
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const t = (m?: number) => (m === undefined ? "" : `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
 
@@ -65,7 +66,8 @@ export function CompensationForm({ b, nav, submit = "Save" }: { b: Bundle; nav?:
 export function AvailabilityForm({ b, nav, submit = "Save availability" }: { b: Bundle; nav?: Nav; submit?: string }) {
   const p = b.profile;
   return (
-    <form action={saveAvailabilityAction} className="space-y-5"><Hidden {...nav} />
+    <form id="availability-form" action={saveAvailabilityAction} className="space-y-5"><Hidden {...nav} />
+      <HoursPresets formId="availability-form" />
       <label className="flex items-start gap-3 rounded-xl bg-secondary/50 p-3 text-sm"><input type="checkbox" name="availabilityPaused" defaultChecked={p?.availabilityPaused} className="mt-0.5 size-5" /><span><strong>Pause my availability.</strong> You will not be recommended or listed to businesses until you turn this off.</span></label>
       <fieldset><legend className="mb-2 text-sm font-semibold">Weekly hours (up to two windows per day, leave blank if unavailable)</legend>
         <div className="space-y-2">{DAYS.map((d, wd) => {

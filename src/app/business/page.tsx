@@ -24,7 +24,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ o
         <Stat label="Spending" value="—" hint="Payments are not active yet" />
       </div>
       <h2 className="mb-3 mt-8 text-xl font-semibold">Your opportunities</h2>
-      {opps.length === 0 ? <EmptyState title="Nothing posted yet" body="Post a micro-task, project, shift or recurring assignment to start receiving applications." action={<LinkButton href="/business/post">Post work</LinkButton>} />
+      {opps.length === 0 ? <EmptyState title="Nothing posted yet" body="Post a short task, project, shift or ongoing work to start receiving applications." action={<LinkButton href="/business/post">Post work</LinkButton>} />
         : <div className="space-y-3">{opps.map(({ o, applicants }) => <Card key={o.id} className="flex flex-wrap items-center justify-between gap-3"><div><Link className="font-semibold hover:underline" href={`/business/opportunities/${o.id}`}>{o.title}</Link><p className="text-sm text-muted">{formatPay(o)} · {applicants} applicant{applicants === 1 ? "" : "s"}</p></div><Badge tone={tone(o.status)}>{o.status.replace("_", " ")}</Badge></Card>)}</div>}
     </>
   );
