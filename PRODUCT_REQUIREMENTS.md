@@ -1,0 +1,17 @@
+# Requirements status (against the master brief)
+Legend: ✅ built and tested · 🟡 partial · ⛔ not built
+
+## Public site
+✅ Home (hero, search, categories, how-it-works, live featured opportunities, trust, FAQ, CTA, footer) · ✅ Find Work / Hire Talent / How it works / About pages · ✅ Opportunity discovery (full-text search; filters: category, remote/local, area, engagement type, pay basis, min pay, skill, experience, scheduled weekday, recurring; sort newest/pay/relevance; pagination) · ✅ Opportunity detail (all required fields, JSON-LD, canonical, OG) · ✅ Category landing pages, sitemap, robots · 🟡 Terms/Privacy are draft placeholders (legal review required) · ⛔ Worker success stories / testimonials (intentionally omitted — none are genuine) · ⛔ Photography (needs licensed imagery) · 🟡 Location search uses configured service areas, not a map/geocoder · ⛔ Saved-search alerts (table exists; no UI/alerts)
+
+## Worker portal
+✅ Registration, email verification, login, password reset · ✅ 5-step onboarding (about/skills, preferences & categories, availability, compensation, verification status & finish) · ✅ Work history, education, certifications (self-declared) · ✅ Availability: weekly windows (2/day), max hours, min/max assignment length, time zone, pause, unavailable date ranges, "how businesses see this" · ✅ Compensation preferences with explicit hard-minimum opt-in · ✅ Find work, saved opportunities · ✅ Recommended (explainable) · ✅ Applications: apply with proposal/rate/availability, status tracking, full history, withdraw, accept/decline offer · ⛔ Messages, bookings/assignments, earnings, reviews, screening questions, attachments, references, specific-date one-off availability · 🟡 Verification: email only (other types modelled, no provider)
+
+## Business portal
+✅ Registration (business or household), profile, verification submission (manual review) · ✅ Post-work wizard for all six engagement types with rule validation, drafts, preview via detail page, edit/pause/close · ✅ Applicant pipeline (reviewing → shortlist → interview → offer / decline), internal notes, history · ✅ Browse talent (privacy-preserving) · ✅ Recommended talent per opportunity · ⛔ Invitations, shortlists of workers, messaging, assignments workspace, work-sharing/coverage engine, recurring management, team members, payments/invoices, reviews, subscriptions
+
+## Admin portal
+✅ Live dashboard · ✅ User search/suspend/restrict/reactivate (reason required, sessions revoked) · ✅ Opportunity moderation (approve/reject/pause/close/feature) · ✅ Verification queue · ✅ Category and skill management · ✅ Versioned matching rules · ✅ Audit log viewer · ✅ RBAC with 7 roles · ⛔ Pricing/commission/subscription config, disputes, finance reports, analytics dashboards, email/notification template editor, feature flags UI, brand editor
+
+## Platform
+✅ PostgreSQL schema + migrations, seed/reset · ✅ Server-side authorisation at service layer · ✅ Rate limiting (login/reset) · ✅ Append-only audit log (DB triggers) · ⛔ Payments (Stripe Connect), file storage/uploads, queue/background jobs, push, real email provider, AI features, Sentry/monitoring, CI/CD pipeline

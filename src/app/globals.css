@@ -1,0 +1,53 @@
+@import "tailwindcss";
+@import "@fontsource-variable/fraunces";
+@import "@fontsource-variable/figtree";
+
+/* Semantic design tokens. Brand palette lives here only; components use semantic names. */
+:root {
+  --primary: #153d32;        /* deep forest green */
+  --primary-fg: #ffffff;
+  --secondary: #dce9dd;      /* soft sage */
+  --secondary-fg: #153d32;
+  --accent: #e6a66a;         /* warm amber */
+  --accent-fg: #252b28;
+  --background: #f5f1e8;     /* warm ivory */
+  --surface: #ffffff;
+  --border: #ddd8cb;
+  --text: #252b28;           /* charcoal */
+  --muted: #5f6a64;          /* darkened from #78817B for AA contrast on ivory/white */
+  --success: #1f7a4d;
+  --warning: #9a5b00;
+  --error: #b3261e;
+  --info: #1f5f8b;
+  --focus: #1f5f8b;
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-secondary: var(--secondary);
+  --color-secondary-fg: var(--secondary-fg);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+  --font-display: "Fraunces Variable", Georgia, serif;
+  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+  --radius-card: var(--radius);
+}
+
+body { background: var(--background); color: var(--text); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.01em; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+a { text-underline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--primary); color: #fff; padding: .75rem 1rem; z-index: 100; }
+.skip-link:focus { left: 0; }
