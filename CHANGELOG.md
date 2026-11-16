@@ -5,6 +5,7 @@
 - CI workflow (`.github/workflows/ci.yml`) and `scripts/e2e.sh`; Dependabot config.
 - Fixed: login throttle counted successful sign-ins (could lock out a shared network); home page ignored flash messages (no confirmation after account deletion).
 - Demo-activity script and screenshot script; screenshots in `docs/screenshots/`.
+- 204 Vitest tests + 27-step Playwright journey + keyboard checks + axe audit.
 
 ## Team members and recurring renewals
 - Business team: invitations, owner/manager/member roles enforced on all write paths, role changes, removal. Recurring assignments: dated sessions, logging/confirmation/missed/cancel, term close-out, worker-accepted renewal offers, reminder/expiry job. Migration `0005_team_and_renewals`.
