@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
+// Optional: let a phone on the same Wi-Fi use `next dev`. Set DEV_ALLOWED_ORIGINS=192.168.1.20 (comma-separated hosts). Ignored in production.
+const devOrigins = (process.env.DEV_ALLOWED_ORIGINS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 const config: NextConfig = {
+  ...(devOrigins.length ? { allowedDevOrigins: devOrigins } : {}),
   serverExternalPackages: ["argon2", "pg"],
   poweredByHeader: false,
   experimental: { serverActions: { bodySizeLimit: "35mb" } }, // up to 3 files x 10 MB per action
