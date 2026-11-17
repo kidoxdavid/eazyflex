@@ -31,7 +31,7 @@ export function scrub(v: unknown, depth = 0): unknown {
 const minLevel = (): Level | "silent" => ((process.env.LOG_LEVEL as Level) in ORDER ? (process.env.LOG_LEVEL as Level) : "info");
 function emit(level: Level, msg: string, fields: Record<string, unknown> = {}) {
   if (ORDER[level] < ORDER[minLevel()]) return;
-  const line = JSON.stringify({ ts: new Date().toISOString(), level, msg: scrubString(msg), service: "openhour", env: process.env.NODE_ENV, ...(scrub(fields) as object) });
+  const line = JSON.stringify({ ts: new Date().toISOString(), level, msg: scrubString(msg), service: "eazyflex", env: process.env.NODE_ENV, ...(scrub(fields) as object) });
   (level === "error" || level === "warn" ? process.stderr : process.stdout).write(line + "\n");
 }
 export const log = { debug: (m: string, f?: Record<string, unknown>) => emit("debug", m, f), info: (m: string, f?: Record<string, unknown>) => emit("info", m, f), warn: (m: string, f?: Record<string, unknown>) => emit("warn", m, f), error: (m: string, f?: Record<string, unknown>) => emit("error", m, f) };
@@ -82,7 +82,7 @@ export async function captureException(err: unknown, ctx: ErrorContext = {}): Pr
   if (!dsn || !shouldReport(fingerprint)) return;
   try {
     const ev = buildEvent(e, ctx);
-    const res = await fetch(dsn.endpoint, { method: "POST", headers: { "Content-Type": "application/x-sentry-envelope", "X-Sentry-Auth": `Sentry sentry_version=7, sentry_key=${dsn.key}, sentry_client=openhour/1.0` }, body: buildEnvelope(ev, dsn.dsn), signal: AbortSignal.timeout(2000) });
+    const res = await fetch(dsn.endpoint, { method: "POST", headers: { "Content-Type": "application/x-sentry-envelope", "X-Sentry-Auth": `Sentry sentry_version=7, sentry_key=${dsn.key}, sentry_client=eazyflex/1.0` }, body: buildEnvelope(ev, dsn.dsn), signal: AbortSignal.timeout(2000) });
     if (!res.ok) log.warn("error reporting rejected", { status: res.status });
   } catch (re) { log.warn("error reporting failed", { error: (re as Error).message }); } // reporting must never break a request
 }

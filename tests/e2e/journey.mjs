@@ -339,7 +339,7 @@ await step("account: download my data; delete my account; cannot sign in afterwa
   await p.goto(`${BASE}/sign-in`); await p.fill("#email", "jordan@demo.test"); await p.fill("#password", "DemoPass2026!"); await p.click("button:has-text('Sign in')"); await p.waitForURL(/worker/);
   await p.goto(`${BASE}/worker/account`); await p.waitForSelector("text=Download your data");
   const [dl] = await Promise.all([p.waitForEvent("download"), p.click("button:has-text('Download my data')")]);
-  must(/openhour-data-export\.json/.test(dl.suggestedFilename()), "unexpected filename"); const txt = require("node:fs").readFileSync(await dl.path(), "utf8"); const data = JSON.parse(txt);
+  must(/eazyflex-data-export\.json/.test(dl.suggestedFilename()), "unexpected filename"); const txt = require("node:fs").readFileSync(await dl.path(), "utf8"); const data = JSON.parse(txt);
   must(data.account.email === "jordan@demo.test" && data.worker.profile.headline, "export missing own data"); must(!/argon2|passwordHash|tokenHash|totp/i.test(txt), "export leaks secrets");
   await p.fill("#dpw", "wrong-password"); await p.fill("#dc", "DELETE"); await p.click("button:has-text('Permanently delete')"); await p.waitForSelector("[role=alert]:has-text('Incorrect password')");
   await p.fill("#dpw", "DemoPass2026!"); await p.fill("#dc", "DELETE"); await p.click("button:has-text('Permanently delete')"); await p.waitForURL((u) => u.pathname === "/"); await p.waitForSelector("text=Your account was deleted");

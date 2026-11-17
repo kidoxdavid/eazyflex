@@ -23,7 +23,7 @@ export async function exportUserData(userId: string) {
   const q = <T>(p: Promise<T>) => p;
 
   const base = {
-    exportedAt: new Date().toISOString(), format: "openhour-export-v1",
+    exportedAt: new Date().toISOString(), format: "eazyflex-export-v1",
     account: { id: u.id, email: u.email, fullName: u.fullName, phone: u.phone, kind: u.kind, status: u.status, emailVerifiedAt: u.emailVerifiedAt, createdAt: u.createdAt, lastLoginAt: u.lastLoginAt, twoFactorEnabled: !!u.totpEnabledAt },
     consents: await q(db.select({ documentType: t.userConsents.documentType, version: t.userConsents.version, acceptedAt: t.userConsents.acceptedAt }).from(t.userConsents).where(eq(t.userConsents.userId, userId))),
     notificationPreferences: (await db.select().from(t.notificationPrefs).where(eq(t.notificationPrefs.userId, userId)))[0] ?? null,

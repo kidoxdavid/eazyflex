@@ -1,6 +1,6 @@
 // Single source of truth for brand identity. Working name — change here only.
 export const brand = {
-  name: "Openhour",
+  name: "EazyFlex",
   tagline: "Your time. Your skills. Your way to earn.",
   businessTagline: "Find the right people. Get the work done.",
   description: "Flexible work that fits your availability, skills and life — remote projects, local opportunities, short shifts and recurring assignments.",

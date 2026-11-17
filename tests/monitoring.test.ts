@@ -70,7 +70,7 @@ describe("reporting to an ingest endpoint", () => {
   it("logs one JSON object per line with sensitive values redacted", () => {
     process.env.LOG_LEVEL = "error"; const lines: string[] = []; vi.spyOn(process.stderr, "write").mockImplementation(((s: string) => { lines.push(s); return true; }) as any);
     log.error("login failed for bob@example.com", { password: "pw", requestId: "r-7" });
-    process.env.LOG_LEVEL = "silent"; const o = JSON.parse(lines[0]); expect(o).toMatchObject({ level: "error", service: "openhour", requestId: "r-7", password: "[redacted]" }); expect(o.msg).toBe("login failed for [email]"); expect(typeof o.ts).toBe("string");
+    process.env.LOG_LEVEL = "silent"; const o = JSON.parse(lines[0]); expect(o).toMatchObject({ level: "error", service: "eazyflex", requestId: "r-7", password: "[redacted]" }); expect(o.msg).toBe("login failed for [email]"); expect(typeof o.ts).toBe("string");
   });
 });
 

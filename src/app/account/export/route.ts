@@ -11,6 +11,6 @@ export async function POST() {
   try {
     const data = await exportUserData(u.id);
     await audit(u.id, "account.exported", "user", u.id);
-    return new NextResponse(JSON.stringify(data, null, 2), { headers: { "Content-Type": "application/json", "Content-Disposition": `attachment; filename="openhour-data-export.json"`, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+    return new NextResponse(JSON.stringify(data, null, 2), { headers: { "Content-Type": "application/json", "Content-Disposition": `attachment; filename="eazyflex-data-export.json"`, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
   } catch (e: any) { return new NextResponse(e?.message ?? "Failed", { status: e?.code === "rate_limited" ? 429 : 400 }); }
 }

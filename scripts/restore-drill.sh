@@ -11,7 +11,7 @@ echo "== 2. erase a user after the backup =="; UID_ERASED="$(npx tsx scripts/dri
 echo "== 3. export the deletion ledger (this file lives outside the backups) =="; npm run -s deletions:export
 grep -q "$UID_ERASED" "$LEDGER_FILE" || { echo "FAIL: erasure missing from ledger export"; exit 1; }
 echo "== 4-5. restore the OLD backup to a scratch DB and re-apply erasures =="
-SCRATCH="openhour_drill_$$"; KEEP_SCRATCH=1 SOURCE_DATABASE_URL="$DATABASE_URL" ./scripts/restore-test.sh "$BACKUP_DIR"/openhour-*.dump.enc "$SCRATCH"
+SCRATCH="eazyflex_drill_$$"; KEEP_SCRATCH=1 SOURCE_DATABASE_URL="$DATABASE_URL" ./scripts/restore-test.sh "$BACKUP_DIR"/eazyflex-*.dump.enc "$SCRATCH"
 echo "== 6. assert the erasure survived the restore =="
 BASE="${ADMIN_DATABASE_URL%/*}"; STATUS="$(psql "$BASE/$SCRATCH" -Atc "select status || '|' || full_name || '|' || email from users where id='$UID_ERASED'")"
 psql "$ADMIN_DATABASE_URL" -qc "drop database if exists \"$SCRATCH\"" >/dev/null

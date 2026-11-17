@@ -98,7 +98,7 @@ describe("notification email and preferences", () => {
     await new Promise<void>((r) => server.listen(2526, "127.0.0.1", r));
     await db.delete(emailOutbox);
     await db.insert(emailOutbox).values({ toEmail: "to@example.test", template: "t", subject: "Hello subject", body: "Body text", link: "http://x/y", status: "queued" });
-    process.env.EMAIL_DRIVER = "smtp"; process.env.SMTP_URL = "smtp://127.0.0.1:2526"; process.env.EMAIL_FROM = "Openhour <no-reply@example.test>";
+    process.env.EMAIL_DRIVER = "smtp"; process.env.SMTP_URL = "smtp://127.0.0.1:2526"; process.env.EMAIL_FROM = "EazyFlex <no-reply@example.test>";
     expect(await processOutbox()).toEqual({ sent: 1, failed: 0, skipped: false });
     expect(received[0]).toMatch(/Subject: Hello subject/); expect(received[0]).toMatch(/Body text/);
     expect((await db.select().from(emailOutbox))[0].status).toBe("sent");

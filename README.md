@@ -1,4 +1,4 @@
-# Openhour — flexible talent marketplace (working name)
+# EazyFlex — flexible talent marketplace
 
 A marketplace connecting businesses/households with people seeking flexible work. Launch market: Calgary, Alberta; nothing in the logic is hard-coded to Calgary (service areas are database rows). The brand name lives in `src/lib/brand.ts` and design tokens in `src/app/globals.css`.
 

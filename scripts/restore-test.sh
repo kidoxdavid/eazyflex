@@ -4,7 +4,7 @@
 # Env: ADMIN_DATABASE_URL (a connection that can CREATE/DROP DATABASE, e.g. .../postgres), BACKUP_PASSPHRASE (if encrypted), LEDGER_FILE (optional: re-apply erasures)
 #      SOURCE_DATABASE_URL (optional: compare row counts against the live database)
 set -euo pipefail
-FILE="${1:?usage: restore-test.sh <backup-file> [scratch-db]}"; SCRATCH="${2:-openhour_restore_check}"
+FILE="${1:?usage: restore-test.sh <backup-file> [scratch-db]}"; SCRATCH="${2:-eazyflex_restore_check}"
 : "${ADMIN_DATABASE_URL:?ADMIN_DATABASE_URL required (a role that can create databases)}"
 case "$SCRATCH" in *prod*|*production*) echo "refusing: scratch db name looks like production"; exit 2;; esac
 WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"; [ -n "${KEEP_SCRATCH:-}" ] || psql "$ADMIN_DATABASE_URL" -qc "drop database if exists \"$SCRATCH\"" >/dev/null 2>&1 || true' EXIT   # KEEP_SCRATCH=1 leaves the restored DB for inspection

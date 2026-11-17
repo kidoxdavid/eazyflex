@@ -5,11 +5,11 @@
 set -euo pipefail
 : "${DATABASE_URL:?DATABASE_URL is required}"
 DIR="${BACKUP_DIR:-./backups}"; DAYS="${BACKUP_RETENTION_DAYS:-35}"; mkdir -p "$DIR"; chmod 700 "$DIR"
-STAMP="$(date -u +%Y%m%dT%H%M%SZ)"; OUT="$DIR/openhour-$STAMP.dump"
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"; OUT="$DIR/eazyflex-$STAMP.dump"
 pg_dump --format=custom --no-owner --no-privileges --dbname="$DATABASE_URL" --file="$OUT"
 if [ -n "${BACKUP_PASSPHRASE:-}" ]; then
   openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in "$OUT" -out "$OUT.enc" -pass env:BACKUP_PASSPHRASE && shred -u "$OUT" 2>/dev/null || rm -f "$OUT"; OUT="$OUT.enc"
 else echo "WARNING: BACKUP_PASSPHRASE not set — backup is NOT encrypted" >&2; fi
 chmod 600 "$OUT"; ( cd "$DIR" && sha256sum "$(basename "$OUT")" >> SHA256SUMS )
-find "$DIR" -maxdepth 1 -name 'openhour-*.dump*' -mtime +"$DAYS" -print -delete | sed 's/^/pruned (retention): /'
+find "$DIR" -maxdepth 1 -name 'eazyflex-*.dump*' -mtime +"$DAYS" -print -delete | sed 's/^/pruned (retention): /'
 echo "backup written: $OUT ($(du -h "$OUT" | cut -f1))"

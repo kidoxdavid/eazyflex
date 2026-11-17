@@ -68,7 +68,7 @@ describe("sessions", () => {
 describe("logging, confirming, missing, cancelling", () => {
   it("worker records a past session (hours required for hourly), not future ones, not twice; the assignment starts", async () => {
     const s = await scenario(); await getRecurringView(s.w.id, s.id); const all = await occs(s.id); const first = all[0];
-    await expect(logSession(s.w.id, first.id, { hours: 2 })).rejects.toThrow(/once it has taken place/); // today's real clock: first may be today or later
+    await expect(logSession(s.w.id, first.id, { hours: 2 }, new Date(Date.parse(first.occursOn + "T12:00:00Z") - 86400_000))).rejects.toThrow(/once it has taken place/); // the day before the first session (independent of today's real date)
     const now = later(10); // ten days on, the earlier sessions are in the past
     await expect(logSession(s.w.id, first.id, {}, now)).rejects.toThrow(/Enter the hours/);
     await expect(logSession(s.w.id, first.id, { hours: 30 }, now)).rejects.toThrow();

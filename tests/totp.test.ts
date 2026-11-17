@@ -27,7 +27,7 @@ describe("verification", () => {
   });
   it("secrets are 160 bits and the otpauth URI is well formed", () => {
     expect(base32Decode(newSecret()).length).toBe(20);
-    expect(otpauthUri("a@b.test", s, "Openhour")).toMatch(/^otpauth:\/\/totp\/Openhour:a%40b\.test\?secret=[A-Z2-7]+&issuer=Openhour/);
+    expect(otpauthUri("a@b.test", s, "EazyFlex")).toMatch(/^otpauth:\/\/totp\/EazyFlex:a%40b\.test\?secret=[A-Z2-7]+&issuer=EazyFlex/);
   });
 });
 describe("secret encryption", () => {
